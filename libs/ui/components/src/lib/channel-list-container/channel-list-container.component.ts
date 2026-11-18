@@ -57,7 +57,13 @@ import {
     PlaylistMeta,
     PlaylistRecentlyViewedItem,
 } from '@iptvnator/shared/interfaces';
-import { normalizeEpgUrls } from '@iptvnator/shared/m3u-utils';
+import {
+    normalizeEpgUrls,
+    getM3uContentType,
+    m3uContentTypeForSection,
+    shouldBrowseM3uVod,
+    trimM3uChannelNames,
+} from '@iptvnator/shared/m3u-utils';
 import { AllChannelsViewComponent } from './all-channels-view/all-channels-view.component';
 import { FavoritesViewComponent } from './favorites-view/favorites-view.component';
 import { GroupsViewComponent } from './groups-view/groups-view.component';
@@ -67,6 +73,7 @@ import {
     RecentViewItem,
 } from './recent-view/recent-view.component';
 import { ChannelListLoadingStateComponent } from '../channel-list-loading-state/channel-list-loading-state.component';
+import { dedupeChannelsByUrl } from './dedupe-channels-by-url.util';
 
 function groupChannelsByTitle(channels: Channel[]): Record<string, Channel[]> {
     return channels.reduce<Record<string, Channel[]>>((groups, channel) => {
@@ -182,12 +189,25 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     readonly openStreamOnDoubleClick = computed(() =>
         this.settingsStore.openStreamOnDoubleClick()
     );
+    /** Settings → EPG: channel icons from the guide win over playlist logos. */
+    readonly preferEpgIcons = computed(
+        () => this.settingsStore.preferEpgIcons?.() === true
+    );
+    /** Settings → General: hide rows that repeat the same stream URL. */
+    readonly hideDuplicateChannels = computed(
+        () => this.settingsStore.hideDuplicateChannels?.() !== false
+    );
 
     /** Item size for virtual scroll - compact when no EPG */
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 52));
 
     /** Active view (all, groups, favorites, recent) */
     readonly activeView = input<string>('all');
+    readonly renderView = computed(() =>
+        m3uContentTypeForSection(this.activeView())
+            ? 'groups'
+            : this.activeView()
+    );
     readonly channelsLoading = input(false);
     readonly recentItems = input<PlaylistRecentlyViewedItem[]>([]);
     readonly sidebarWidth = input<number | null>(null);
@@ -241,6 +261,9 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     readonly viewTitle = computed(() => {
         const view = this.activeView();
         const url = this.currentUrl();
+        if (view === 'live') return 'PORTALS.SIDEBAR.LIVE_TV';
+        if (view === 'series') return 'PORTALS.SIDEBAR.SERIES';
+        if (view === 'vod') return 'PORTALS.SIDEBAR.MOVIES';
         if (view === 'all') return 'CHANNELS.ALL_CHANNELS';
         if (view === 'groups') return 'CHANNELS.GROUPS';
         if (view === 'recent') return 'PORTALS.SIDEBAR.RECENT';
@@ -301,7 +324,9 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
 
     @Input()
     set channelList(value: Channel[]) {
-        const safeValue = value ?? [];
+        const safeValue = (value ?? []).map((channel) =>
+            trimM3uChannelNames(channel)
+        );
         this._channelList = safeValue;
         this.channelListSignal.set(safeValue);
         this.channelList$.next(safeValue);
@@ -358,7 +383,7 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     readonly showChannelViews = computed(
         () =>
             this.displayedChannels().length > 0 ||
-            (this.activeView() === 'groups' && this.withheldGroupCount() > 0)
+            (this.renderView() === 'groups' && this.withheldGroupCount() > 0)
     );
     /** Group titles currently withheld: locked AND the lock is active. */
     private readonly withheldGroupTitles = computed(() => {
@@ -399,7 +424,14 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
 
     /** Displayed channels - the playlist minus the parental lock's withheld groups */
     readonly displayedChannels = computed(() => {
-        return this.visibleChannelList();
+        const type = m3uContentTypeForSection(this.activeView());
+        const channels = this.visibleChannelList();
+        const filtered = type
+            ? channels.filter((channel) => getM3uContentType(channel) === type)
+            : channels;
+        return this.hideDuplicateChannels()
+            ? dedupeChannelsByUrl(filtered, this.activeChannel())
+            : filtered;
     });
 
     /** Object with channels sorted by groups */
@@ -577,6 +609,15 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     }
 
     onChannelPlaybackRequested(channel: Channel): void {
+        if (
+            shouldBrowseM3uVod(
+                channel,
+                this.settingsStore.m3uVodDetails?.() !== false
+            )
+        ) {
+            this.onChannelSelected(channel);
+            return;
+        }
         this.store.dispatch(
             ChannelActions.setActiveChannel({
                 channel,

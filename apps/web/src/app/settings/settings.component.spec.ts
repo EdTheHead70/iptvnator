@@ -549,4 +549,26 @@ describe('SettingsComponent', () => {
             expect(component.settingsForm.dirty).toBe(true);
         });
     });
+
+    it('shows the desktop default recording folder when none is saved', async () => {
+        fixture.destroy();
+        window.electron = {
+            ...createElectronStub(),
+            getEmbeddedMpvDefaultRecordingFolder: jest
+                .fn()
+                .mockResolvedValue('/Users/test/Movies/IPTVNator'),
+        } as unknown as typeof window.electron;
+
+        const defaultFixture = TestBed.createComponent(SettingsComponent);
+        const defaultComponent = defaultFixture.componentInstance;
+        stubSettingsSideEffects(defaultComponent);
+        const loadSettings = jest.spyOn(defaultComponent.form, 'loadSettings');
+        defaultFixture.detectChanges();
+        await loadSettings.mock.results[0].value;
+        await defaultFixture.whenStable();
+
+        expect(defaultComponent.settingsForm.value.recordingFolder).toBe(
+            '/Users/test/Movies/IPTVNator'
+        );
+    });
 });

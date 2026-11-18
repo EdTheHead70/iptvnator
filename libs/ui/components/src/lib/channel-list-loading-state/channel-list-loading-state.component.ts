@@ -25,7 +25,9 @@ export class ChannelListLoadingStateComponent {
     /** False where the loaded view hides its header (compact lists). */
     readonly showHeader = input(true);
 
-    readonly isGroupsView = computed(() => this.view() === 'groups');
+    readonly isGroupsView = computed(() =>
+        ['groups', 'live', 'series', 'vod'].includes(this.view())
+    );
     /** Only the "All channels" header carries the sort and hide actions. */
     readonly hasHeaderActions = computed(() => this.view() === 'all');
     readonly headerActionSlots = [0, 1] as const;

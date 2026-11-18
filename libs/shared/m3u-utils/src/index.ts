@@ -8,3 +8,9 @@ export * from './lib/catchup.utils';
 export * from './lib/strip-country-prefix.util';
 
 export * from './lib/playlist-epg-import-preference';
+
+export * from './lib/m3u-content-type.util';
+
+export * from './lib/m3u-channel-names.util';
+
+export * from './lib/channel-entry-identity.util';

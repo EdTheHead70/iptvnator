@@ -199,9 +199,13 @@ Whatever holds on to one answer follows it through `watchEmbeddedMpvSupport()`
 `EMBEDDED_MPV_SUPPORT_RECHECK_MS`, backing off to
 `EMBEDDED_MPV_SUPPORT_RECHECK_MAX_MS`, until the answer is final:
 
-- The settings store keeps a saved Embedded MPV selection while the answer is
-  inconclusive, falls back to the default player only on a final unsupported
-  answer, and never overwrites a player the user picked meanwhile.
+- The settings store preserves a saved Embedded MPV preference across all
+  availability results, including a missing runtime, a disabled development
+  flag, an absent bridge, or a failed check. Availability checks never persist
+  a replacement player. Supported results schedule idle preparation;
+  unavailable playback retains its existing status and retry UI. Settings
+  keeps an unavailable saved choice visible as a disabled option so unrelated
+  saves preserve it. Only an explicit player change replaces the preference.
 - The player (`EmbeddedMpvSessionController`) and the settings page stay
   mounted on one answer: a player mounted in that window starts playback by
   itself once `mpv` is found, and the option appears without reopening the
@@ -231,6 +235,15 @@ behavior does not resize the native MPV viewport or make the video jump. Volume
 and audio-track panels replace the default transport controls inside the same
 dock and provide a back button to return to the default controls. Popovers and
 menus must stay inside that dock unless the native layering strategy changes.
+macOS native string-property events dereference MPV’s `char**` payload before
+copying text into the session snapshot. The unset aspect override reported as
+`-1.000000` maps to `no`, matching the frame-copy engine and localized Default
+label. This applies to aspect, stream path, and selected track identifiers.
+
+Button help uses a reserved 24 px label row inside the dock, populated from
+localized accessible button names on hover and keyboard focus. Native-view
+Material tooltips are disabled because their above-button overlays can sit
+behind the platform video surface. The reserved row never changes on hover.
 The native MPV view deliberately ignores hit testing so mouse movement passes
 through to Chromium and can reveal Angular controls even when the pointer moves
 quickly across the video area. None of these compositor restrictions applies to
@@ -1110,8 +1123,8 @@ re-letterboxes. The popover-era 300 px bottom cutout
 global arrow-key shortcuts (seek/volume) are suspended so arrows walk the
 chips instead.
 
-The viewport DOM element reserves `--embedded-mpv-controls-height` (64 px;
-88 px under the narrow breakpoint) at the bottom when controls are enabled, so
+The viewport DOM element reserves `--embedded-mpv-controls-height` (88 px;
+112 px under the narrow breakpoint) at the bottom when controls are enabled, so
 the controls strip — including the in-dock panels — is always DOM and always
 reachable for hover-to-reveal.
 
@@ -1460,6 +1473,17 @@ removes the private closure. Local Linux builds may still use distribution
 headers/libraries, but a required package build must use the staged manifest.
 macOS additionally rewrites Mach-O paths and re-signs modified local binaries;
 release signing/notarization still happens later.
+
+macOS deployment targets of 27 or later require `arm64`. The native addon and
+source runtime builders enforce `MACOSX_DEPLOYMENT_TARGET`; the packaging
+`beforePack` hook also checks `mac.minimumSystemVersion`. Intel builds remain
+available for older deployment targets, regardless of the build host OS.
+
+The macOS native addon uses an 11.0 deployment floor, matching the helper and
+source runtime rather than requesting unsupported pre-11 libc++ availability.
+Electron’s own minimum macOS version still governs application support. The
+`NSOpenGLView` owns its context/drawable association; do not separately call
+the deprecated `NSOpenGLContext::setView:`.
 
 For local development before the vendored runtime exists, Homebrew can be used explicitly:
 

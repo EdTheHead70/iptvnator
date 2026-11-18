@@ -21,11 +21,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { EpgRuntimeBridgeService } from '@iptvnator/epg/data-access';
-import { resolveChannelEpgLookupKey } from '@iptvnator/m3u-state';
+import {
+    resolveChannelEpgLookupKey,
+    ExternalPlayerHeaderFallback,
+} from '@iptvnator/m3u-state';
 import {
     EpgPreferencesService,
     ParentalLockService,
     SettingsStore,
+    StreamProbeService,
 } from '@iptvnator/services';
 import {
     foldSearchText,
@@ -42,7 +46,11 @@ import {
     restorePlaylistChannelSortMode,
     sortPlaylistChannelItems,
 } from '../channel-list-sort.util';
-import { resolveChannelLogo } from '../channel-logo-fallback.util';
+import {
+    resolveChannelLogo,
+    resolvePlaylistLogo,
+} from '../channel-logo-fallback.util';
+import { isSameChannelEntry } from '@iptvnator/shared/m3u-utils';
 import { EpgMappingDialogComponent } from '../epg-mapping-dialog/epg-mapping-dialog.component';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
@@ -57,8 +65,10 @@ import {
     GroupManagementDialogGroup,
 } from './group-management-dialog/group-management-dialog.component';
 import { dialogSize } from '../../dialog-shell/dialog-size';
+import { GroupStreamTestDialogComponent } from './group-stream-test-dialog.component';
 import { createGroupsRailReveal } from './groups-rail-reveal';
 
+const GROUP_SORT_STORAGE_KEY = 'm3u-groups-sort-mode';
 const GROUP_CHANNEL_SORT_STORAGE_KEY = 'm3u-groups-channel-sort-mode';
 /** Rail width inside the fullscreen channel panel; see the `compact` input. */
 const COMPACT_GROUPS_NAV_WIDTH = 148;
@@ -120,6 +130,7 @@ export class GroupsViewComponent {
     /** Grouped channels object */
     readonly groupedChannels = input.required<{ [key: string]: Channel[] }>();
     readonly searchTerm = input('');
+    readonly titleKey = input('CHANNELS.GROUPS');
     /**
      * The selected group's title / sort / collapse header over the channel
      * pane. Off inside the fullscreen channel panel; the groups rail keeps
@@ -153,6 +164,8 @@ export class GroupsViewComponent {
     /** EPG map for channel enrichment */
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
     readonly channelIconMap = input.required<Map<string, string>>();
+    /** Settings → EPG: show the EPG icon instead of the playlist logo. */
+    readonly preferEpgIcons = input(false);
 
     /** Progress tick to trigger progress recalculation */
     readonly progressTick = input.required<number>();
@@ -163,6 +176,7 @@ export class GroupsViewComponent {
 
     /** Currently active channel URL */
     readonly activeChannelUrl = input<string | undefined>();
+    readonly activeChannel = input<Channel | null | undefined>();
 
     /** Set of favorite channel URLs */
     readonly favoriteIds = input<Set<string>>(new Set());
@@ -179,6 +193,11 @@ export class GroupsViewComponent {
      * and locked groups under the CURRENT playlist.
      */
     readonly playlistId = input<string | null>(null);
+    readonly probePlaylistHeaders = input<ExternalPlayerHeaderFallback | null>(
+        null
+    );
+    readonly streamProbe = inject(StreamProbeService);
+    private groupContextPlaylistId: string | null = null;
     readonly lockedGroupTitles = input<string[] | null>(null);
     readonly managementGroups = input<GroupManagementDialogGroup[] | null>(
         null
@@ -224,6 +243,20 @@ export class GroupsViewComponent {
         viewChild<CategoryLockMenuComponent>('groupLockMenu');
     private groupLockKey: string | null = null;
 
+    readonly groupSortModes: PlaylistChannelSortMode[] = [
+        'server',
+        'name-asc',
+        'name-desc',
+    ];
+    readonly groupSortMode = signal<PlaylistChannelSortMode>(
+        restorePlaylistChannelSortMode(GROUP_SORT_STORAGE_KEY)
+    );
+
+    setGroupSortMode(mode: PlaylistChannelSortMode): void {
+        this.groupSortMode.set(mode);
+        persistPlaylistChannelSortMode(GROUP_SORT_STORAGE_KEY, mode);
+    }
+
     readonly isGroupSearchOpen = signal(false);
     readonly localGroupSearchTerm = signal('');
     readonly selectedGroupKey = signal<string | null>(null);
@@ -241,7 +274,7 @@ export class GroupsViewComponent {
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 52));
     readonly contextMenuChannel = signal<Channel | null>(null);
 
-    private previousActiveChannelUrl: string | undefined;
+    private previousActiveGroupKey: string | null = null;
     private preservedContentWidth = 0;
     /** The outer sidebar's width when a rail resize started. */
     private sidebarWidthAtResizeStart: number | null = null;
@@ -254,16 +287,15 @@ export class GroupsViewComponent {
             );
             const currentSelection = this.selectedGroupKey();
             const activeGroupKey = this.activeChannelGroupKey();
-            const activeChannelUrl = this.activeChannelUrl();
-            const activeChannelChanged =
-                activeChannelUrl !== this.previousActiveChannelUrl;
+            const activeGroupChanged =
+                activeGroupKey !== this.previousActiveGroupKey;
 
-            this.previousActiveChannelUrl = activeChannelUrl;
+            this.previousActiveGroupKey = activeGroupKey;
 
             let nextSelection: string | null = null;
 
             if (
-                activeChannelChanged &&
+                activeGroupChanged &&
                 activeGroupKey &&
                 visibleGroupKeys.has(activeGroupKey)
             ) {
@@ -318,7 +350,15 @@ export class GroupsViewComponent {
             key,
         }));
 
-        return groups.sort(this.groupsComparator);
+        return this.groupSortMode() === 'server'
+            ? groups.sort(this.groupsComparator)
+            : [
+                  ...sortPlaylistChannelItems(
+                      groups,
+                      this.groupSortMode(),
+                      (group) => group.key
+                  ),
+              ];
     });
 
     readonly visibleGroups = computed(() => {
@@ -435,8 +475,21 @@ export class GroupsViewComponent {
     }
 
     /** Resolves the channel logo. Called per visible row from the template. */
+    getPlaylistLogoForChannel(channel: Channel): string {
+        return resolvePlaylistLogo(channel);
+    }
+
     getLogoForChannel(channel: Channel): string {
-        return resolveChannelLogo(channel, this.channelIconMap());
+        return resolveChannelLogo(
+            channel,
+            this.channelIconMap(),
+            this.preferEpgIcons()
+        );
+    }
+
+    isChannelActive(channel: Channel): boolean {
+        const active = this.activeChannel();
+        return !!active && isSameChannelEntry(channel, active);
     }
 
     private readonly groupKeyByChannelUrl = computed(() => {
@@ -457,6 +510,23 @@ export class GroupsViewComponent {
     });
 
     readonly activeChannelGroupKey = computed(() => {
+        const active = this.activeChannel();
+        if (active) {
+            // Duplicate stream URLs may sit in several groups: pick the group
+            // that actually holds the active entry, not the first URL match.
+            for (const [groupKey, channels] of Object.entries(
+                this.groupedChannels()
+            )) {
+                if (
+                    channels.some((channel) =>
+                        isSameChannelEntry(channel, active)
+                    )
+                ) {
+                    return groupKey;
+                }
+            }
+        }
+
         const activeChannelUrl = this.activeChannelUrl();
         if (!activeChannelUrl) {
             return null;
@@ -494,11 +564,29 @@ export class GroupsViewComponent {
      */
     onGroupContextMenu(groupKey: string, event: MouseEvent): void {
         const locked = this.lockedGroupTitles();
-        if (locked === null) {
-            return;
-        }
         this.groupLockKey = groupKey;
-        this.groupLockMenu()?.open(event, locked.includes(groupKey));
+        this.groupContextPlaylistId = this.playlistId();
+        this.groupLockMenu()?.open(event, locked?.includes(groupKey) ?? false);
+    }
+
+    testGroupChannels(): void {
+        if (
+            !this.streamProbe.isAvailable ||
+            this.groupContextPlaylistId !== this.playlistId()
+        )
+            return;
+        const key = this.groupLockKey;
+        const channels = key === null ? undefined : this.groupedChannels()[key];
+        if (!channels?.length) return;
+        this.dialog.open(GroupStreamTestDialogComponent, {
+            ...dialogSize('lg'),
+            data: {
+                groupName: key,
+                channels,
+                settings: this.settingsStore.streamTesting?.(),
+                playlistHeaders: this.probePlaylistHeaders(),
+            },
+        });
     }
 
     /**

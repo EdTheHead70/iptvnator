@@ -1,3 +1,4 @@
+import { DEFAULT_STREAM_TESTING_SETTINGS } from '@iptvnator/shared/interfaces';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
@@ -84,6 +85,7 @@ export const DEFAULT_DASHBOARD_RAILS = {
 };
 
 export const DEFAULT_SETTINGS = {
+    streamTesting: { ...DEFAULT_STREAM_TESTING_SETTINGS },
     player: VideoPlayer.VideoJs,
     webPlayerSharedControls: true,
     playerAmbientMode: false,
@@ -105,6 +107,7 @@ export const DEFAULT_SETTINGS = {
     updateChannel: 'stable',
     showExternalPlaybackBar: true,
     stripCountryPrefix: false,
+    hideDuplicateChannels: true,
     theme: Theme.SystemTheme,
     themeAccent: null,
     systemLightTheme: Theme.LightTheme,
@@ -128,6 +131,7 @@ export const DEFAULT_SETTINGS = {
     showCoverTitles: true,
     dashboardRails: DEFAULT_DASHBOARD_RAILS,
     preferUploadedEpgOverXtream: false,
+    preferEpgIcons: false,
     epgViewMode: 'timeline',
     epgOffsetMinutes: 0,
     tmdb: { enabled: false, apiKey: '' },

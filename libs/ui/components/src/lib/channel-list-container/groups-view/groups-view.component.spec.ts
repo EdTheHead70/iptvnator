@@ -108,6 +108,7 @@ describe('GroupsViewComponent', () => {
 
     beforeEach(async () => {
         localStorage.removeItem(GROUP_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem('m3u-groups-sort-mode');
 
         parentalLock = {
             requestUnlock: jest.fn().mockResolvedValue(true),
@@ -144,6 +145,7 @@ describe('GroupsViewComponent', () => {
     afterEach(() => {
         fixture.destroy();
         localStorage.removeItem(GROUP_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem('m3u-groups-sort-mode');
     });
 
     function createComponent(
@@ -226,6 +228,71 @@ describe('GroupsViewComponent', () => {
             'Group 10',
             'Alpha',
         ]);
+    });
+
+    it('sorts group names independently and preserves selection and source data', () => {
+        const groupedChannels = {
+            'Group 10': [sportsCenter],
+            'Group 2': [movieClassic],
+            Alpha: [scienceNow],
+        };
+        setInputs({ groupedChannels });
+        component.selectGroup('Group 2');
+        component.setGroupSortMode('name-asc');
+        fixture.detectChanges();
+        expect(component.filteredGroups().map((group) => group.key)).toEqual([
+            'Alpha',
+            'Group 2',
+            'Group 10',
+        ]);
+        component.setGroupSortMode('name-desc');
+        fixture.detectChanges();
+        expect(component.filteredGroups().map((group) => group.key)).toEqual([
+            'Group 10',
+            'Group 2',
+            'Alpha',
+        ]);
+        expect(component.selectedGroupKey()).toBe('Group 2');
+        expect(component.groupChannelSortMode()).toBe('server');
+        expect(Object.keys(groupedChannels)).toEqual([
+            'Group 10',
+            'Group 2',
+            'Alpha',
+        ]);
+        expect(localStorage.getItem('m3u-groups-sort-mode')).toBe('name-desc');
+        component.setGroupSortMode('server');
+        expect(component.filteredGroups().map((group) => group.key)).toEqual([
+            'Group 2',
+            'Group 10',
+            'Alpha',
+        ]);
+    });
+
+    it('opens the group sort menu and applies the chosen order', () => {
+        setInputs();
+        fixture.nativeElement
+            .querySelector('[data-test-id="groups-sort-button"]')
+            .click();
+        fixture.detectChanges();
+        const descending = Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+                '[role="menuitemradio"]'
+            )
+        ).find((button) =>
+            button.textContent?.includes('WORKSPACE.SORT_NAME_DESC')
+        );
+        expect(descending).toBeDefined();
+        descending!.click();
+        fixture.detectChanges();
+        expect(component.groupSortMode()).toBe('name-desc');
+    });
+
+    it('restores the group sort preference when the view is recreated', () => {
+        component.setGroupSortMode('name-desc');
+        fixture.destroy();
+        fixture = TestBed.createComponent(GroupsViewComponent);
+        component = fixture.componentInstance;
+        expect(component.groupSortMode()).toBe('name-desc');
     });
 
     it('defaults to playlist order when no saved sort mode exists', () => {
@@ -598,6 +665,48 @@ describe('GroupsViewComponent', () => {
         expect(lockedGroupTitlesChanged).not.toHaveBeenCalled();
     });
 
+    it('offers group testing without parental locks and includes channels hidden by search', async () => {
+        setInputs();
+        jest.spyOn(component.streamProbe, 'isAvailable', 'get').mockReturnValue(
+            true
+        );
+        fixture.componentRef.setInput('searchTerm', 'Sports Center');
+        fixture.detectChanges();
+        const selected = component.selectedGroupKey();
+        const event = new MouseEvent('contextmenu', { cancelable: true });
+        component.onGroupContextMenu('Sports', event);
+        await Promise.resolve();
+        fixture.detectChanges();
+        expect(event.defaultPrevented).toBe(true);
+        const action = document.querySelector<HTMLButtonElement>(
+            '[data-test-id="test-group-channels"]'
+        );
+        expect(action).not.toBeNull();
+        action?.click();
+        expect(dialog.open).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    groupName: 'Sports',
+                    channels: component.groupedChannels()['Sports'],
+                }),
+            })
+        );
+        expect(component.selectedGroupKey()).toBe(selected);
+    });
+
+    it('does not test a different playlist after a context menu was opened', () => {
+        setInputs();
+        jest.spyOn(component.streamProbe, 'isAvailable', 'get').mockReturnValue(
+            true
+        );
+        fixture.componentRef.setInput('playlistId', 'first');
+        component.onGroupContextMenu('Sports', new MouseEvent('contextmenu'));
+        fixture.componentRef.setInput('playlistId', 'second');
+        component.testGroupChannels();
+        expect(dialog.open).not.toHaveBeenCalled();
+    });
+
     it('emits a single-group toggle from the right-click menu (the host asks for the PIN)', () => {
         const groupLockToggled = jest.fn();
         component.groupLockToggled.subscribe(groupLockToggled);
@@ -652,10 +761,21 @@ describe('GroupsViewComponent', () => {
         ).not.toBeNull();
     });
 
-    it('offers no group lock menu while the feature is off', () => {
-        const event = new MouseEvent('contextmenu', { cancelable: true });
-        component.onGroupContextMenu('Sports', event);
-        expect(event.defaultPrevented).toBe(false);
+    it('offers testing but no lock toggle while parental locks are off', async () => {
+        component.onGroupContextMenu(
+            'Sports',
+            new MouseEvent('contextmenu', { cancelable: true })
+        );
+        await Promise.resolve();
+        fixture.detectChanges();
+        expect(
+            document.querySelector('[data-test-id="category-lock-menu-toggle"]')
+        ).toBeNull();
+        const action = document.querySelector<HTMLButtonElement>(
+            '[data-test-id="test-group-channels"]'
+        );
+        expect(action).not.toBeNull();
+        expect(action?.disabled).toBe(true);
     });
 
     it('keeps the manage-groups dialog closed when the parental PIN is refused', async () => {

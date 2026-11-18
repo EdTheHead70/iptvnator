@@ -56,7 +56,15 @@ function getM3uRouteContext(url: string): {
     inWorkspace: boolean;
     playlistId: string | null;
     provider: 'playlists' | null;
-    section: 'all' | 'favorites' | 'groups' | 'recent' | null;
+    section:
+        | 'all'
+        | 'favorites'
+        | 'groups'
+        | 'live'
+        | 'series'
+        | 'vod'
+        | 'recent'
+        | null;
 } {
     const match = url.match(
         /^\/workspace\/playlists\/([^/]+)\/([^/?]+)(?:\/|$)/
@@ -67,8 +75,15 @@ function getM3uRouteContext(url: string): {
         playlistId: match?.[1] ?? null,
         provider: match ? 'playlists' : null,
         section:
-            (match?.[2] as 'all' | 'favorites' | 'groups' | 'recent' | null) ??
-            null,
+            (match?.[2] as
+                | 'all'
+                | 'favorites'
+                | 'groups'
+                | 'live'
+                | 'series'
+                | 'vod'
+                | 'recent'
+                | null) ?? null,
     };
 }
 
@@ -138,6 +153,24 @@ describe('M3uWorkspaceRouteSession', () => {
     afterEach(() => {
         delete (window as unknown as { electron?: unknown }).electron;
     });
+
+    it.each(['live', 'series', 'vod'])(
+        'loads playlist channels on a direct %s route',
+        async (section) => {
+            router.url = `/workspace/playlists/${PLAYLIST_ID}/${section}`;
+            playlistsService.getPlaylist.mockReturnValue(
+                of({ playlist: { items: [PRIMARY_CHANNEL] } } as Playlist)
+            );
+            TestBed.inject(M3uWorkspaceRouteSession);
+            await flushEffects();
+            expect(playlistsService.getPlaylist).toHaveBeenCalledWith(
+                PLAYLIST_ID
+            );
+            expect(store.dispatch).toHaveBeenCalledWith(
+                ChannelActions.setChannels({ channels: [PRIMARY_CHANNEL] })
+            );
+        }
+    );
 
     it('does not start channel loading for collection routes like favorites', async () => {
         router.url = `/workspace/playlists/${PLAYLIST_ID}/favorites`;
@@ -351,6 +384,24 @@ describe('M3uWorkspaceRouteSession', () => {
                 ([action]) => action.type === FavoritesActions.setFavorites.type
             )
         ).toBe(false);
+    });
+
+    it('publishes an in-flight playlist read after switching content sections', async () => {
+        const response = new Subject<Playlist>();
+        playlistsService.getPlaylist.mockReturnValue(response);
+        router.url = `/workspace/playlists/${PLAYLIST_ID}/live`;
+        TestBed.inject(M3uWorkspaceRouteSession);
+        await flushEffects();
+        router.url = `/workspace/playlists/${PLAYLIST_ID}/series`;
+        routerEvents.next(new NavigationEnd(1, router.url, router.url));
+        await flushEffects();
+        response.next({ playlist: { items: [PRIMARY_CHANNEL] } } as Playlist);
+        response.complete();
+        await flushEffects();
+        expect(playlistsService.getPlaylist).toHaveBeenCalledTimes(1);
+        expect(store.dispatch).toHaveBeenCalledWith(
+            ChannelActions.setChannels({ channels: [PRIMARY_CHANNEL] })
+        );
     });
 
     it('ignores stale playlist responses after a newer route request wins', async () => {

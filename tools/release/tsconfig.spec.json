@@ -13,6 +13,8 @@
     "include": [
         "capture-cinematic*.ts",
         "capture-navigation-cinematic-actions.ts",
+        "capture-browser-shot.ts",
+        "capture-release-screenshots.ts",
         "capture-tmdb-check.ts",
         "capture-runtime.ts"
     ]

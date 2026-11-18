@@ -18,7 +18,7 @@ import {
 } from '@iptvnator/ui/components';
 
 export type M3uFullscreenChannelView =
-    'all' | 'groups' | 'favorites' | 'recent';
+    'all' | 'groups' | 'live' | 'series' | 'vod' | 'favorites' | 'recent';
 
 export interface M3uFullscreenChannelViewOption {
     readonly id: M3uFullscreenChannelView;
@@ -30,6 +30,9 @@ export const M3U_FULLSCREEN_CHANNEL_VIEWS: readonly M3uFullscreenChannelViewOpti
     [
         { id: 'all', labelKey: 'CHANNELS.ALL_CHANNELS', icon: 'list' },
         { id: 'groups', labelKey: 'CHANNELS.GROUPS', icon: 'folder' },
+        { id: 'live', labelKey: 'PORTALS.SIDEBAR.LIVE_TV', icon: 'live_tv' },
+        { id: 'series', labelKey: 'PORTALS.SIDEBAR.SERIES', icon: 'tv' },
+        { id: 'vod', labelKey: 'PORTALS.SIDEBAR.MOVIES', icon: 'movie' },
         {
             id: 'favorites',
             labelKey: 'CHANNELS.FAVORITES',
@@ -41,14 +44,15 @@ export const M3U_FULLSCREEN_CHANNEL_VIEWS: readonly M3uFullscreenChannelViewOpti
 export function toM3uFullscreenChannelView(
     view: string | null | undefined
 ): M3uFullscreenChannelView {
-    return view === 'groups' || view === 'favorites' || view === 'recent'
-        ? view
-        : 'all';
+    return (
+        M3U_FULLSCREEN_CHANNEL_VIEWS.find((option) => option.id === view)?.id ??
+        'all'
+    );
 }
 
 /**
  * Body of the fullscreen channel panel for M3U playlists: an icon-only view
- * switcher (all / groups / favorites / recent) over the same channel list
+ * switcher (all / groups / content type / favorites / recent) over the same channel list
  * container the sidebar renders, in its `compact` mode so the container's
  * per-view headers (title, sort, collapse) never stack under the panel's
  * search row. The view is local state on purpose — the sidebar's tabs are

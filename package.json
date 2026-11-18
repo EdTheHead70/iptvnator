@@ -2,7 +2,7 @@
     "name": "iptvnator",
     "version": "0.25.0",
     "engines": {
-        "node": "^22.23.4 || ^24.22.1"
+        "node": "^22.23.4 || ^24.22.1 || ^26.13.0"
     },
     "license": "MIT",
     "description": "IPTV player application.",

@@ -17,6 +17,7 @@ import { TranslatePipe } from '@ngx-translate/core';
  * the emitted target state themselves — the menu knows nothing about
  * playlists or lock stores. Bulk actions and the full list stay in the
  * "Manage categories" dialog; this only shortens the single-category case.
+ * Hosts may project additional row actions and hide the optional lock toggle.
  */
 @Component({
     selector: 'app-category-lock-menu',
@@ -32,17 +33,21 @@ import { TranslatePipe } from '@ngx-translate/core';
             #trigger="matMenuTrigger"
         ></div>
         <mat-menu #menu="matMenu">
-            <button
-                mat-menu-item
-                type="button"
-                data-test-id="category-lock-menu-toggle"
-                (click)="toggleRequested.emit(!locked())"
-            >
-                <mat-icon>{{ locked() ? 'lock_open' : 'lock' }}</mat-icon>
-                <span>{{
-                    (locked() ? unlockLabelKey() : lockLabelKey()) | translate
-                }}</span>
-            </button>
+            @if (showLockToggle()) {
+                <button
+                    mat-menu-item
+                    type="button"
+                    data-test-id="category-lock-menu-toggle"
+                    (click)="toggleRequested.emit(!locked())"
+                >
+                    <mat-icon>{{ locked() ? 'lock_open' : 'lock' }}</mat-icon>
+                    <span>{{
+                        (locked() ? unlockLabelKey() : lockLabelKey())
+                            | translate
+                    }}</span>
+                </button>
+            }
+            <ng-content />
         </mat-menu>
     `,
     styles: `
@@ -58,6 +63,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     `,
 })
 export class CategoryLockMenuComponent {
+    readonly showLockToggle = input(true);
     readonly lockLabelKey = input('PARENTAL_LOCK.LOCK_CATEGORY');
     readonly unlockLabelKey = input('PARENTAL_LOCK.UNLOCK_CATEGORY');
     /** The desired state: `true` = lock the row, `false` = unlock it. */

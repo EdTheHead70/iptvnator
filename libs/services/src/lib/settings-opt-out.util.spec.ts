@@ -17,6 +17,7 @@ describe('default-on settings coercion', () => {
             embeddedMpvAutoReconnect: true,
             seriesAutoplay: true,
             showCoverTitles: true,
+            hideDuplicateChannels: true,
         });
     });
 

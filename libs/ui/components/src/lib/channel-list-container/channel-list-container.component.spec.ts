@@ -79,8 +79,11 @@ describe('ChannelListContainerComponent', () => {
     let favoriteChannelIds$: BehaviorSubject<string[]>;
     let runtimeCapabilities: { supportsEpg: boolean };
     let globalEpgUrls: WritableSignal<string[]>;
+    let storageGet: jest.Mock;
+    const hideDuplicateChannels = signal(true);
 
     beforeEach(async () => {
+        hideDuplicateChannels.set(true);
         const routerEvents$ = new Subject<NavigationEnd>();
         dispatch = jest.fn();
         favoriteChannelIds$ = new BehaviorSubject<string[]>([]);
@@ -145,6 +148,7 @@ describe('ChannelListContainerComponent', () => {
                         epgUrl: globalEpgUrls,
                         openStreamOnDoubleClick: signal(false),
                         resolvedEpgOffsetMinutes: signal(0),
+                        hideDuplicateChannels,
                     },
                 },
                 {
@@ -193,6 +197,52 @@ describe('ChannelListContainerComponent', () => {
 
         fixture = TestBed.createComponent(ChannelListContainerComponent);
     });
+
+    it.each([
+        ['live', 'live'],
+        ['series', 'series'],
+        ['vod', 'movie'],
+    ])(
+        'filters %s groups by entry type, including saved raw entries',
+        (section, type) => {
+            const component = fixture.componentInstance;
+            const channels = [
+                createChannel('live', 'http://example.test/live'),
+                {
+                    ...createChannel('series', 'http://example.test/episode'),
+                    type: 'series',
+                },
+                {
+                    ...createChannel('movie', 'http://example.test/movie'),
+                    raw: '#EXTINF:-1 type="movie",Film',
+                },
+            ];
+            component.channelList = channels;
+            fixture.componentRef.setInput('activeView', section);
+            fixture.detectChanges();
+            expect(component.renderView()).toBe('groups');
+            expect(
+                component.displayedChannels().map((channel) => channel.id)
+            ).toEqual([type]);
+            expect(component.groupedChannels()['Group']).toHaveLength(1);
+            fixture.componentRef.setInput('activeView', 'groups');
+            expect(component.displayedChannels()).toHaveLength(3);
+        }
+    );
+
+    it.each(['movie', 'series'])(
+        'browses typed %s entries even when double-click requests playback',
+        (type) => {
+            const channel = {
+                ...createChannel('vod', 'http://example.test/stream'),
+                type,
+            };
+            fixture.componentInstance.onChannelPlaybackRequested(channel);
+            expect(TestBed.inject(Store).dispatch).toHaveBeenCalledWith(
+                ChannelActions.setActiveChannel({ channel })
+            );
+        }
+    );
 
     it('keeps the groups view (and its unlock row) when every group is withheld', () => {
         const withheld = signal(0);
@@ -505,5 +555,56 @@ describe('ChannelListContainerComponent', () => {
         expect(favorites[0]).toBe(sports);
         expect(favorites[1]).toBe(firstDuplicate);
         expect(urlReadCount).toBe(3);
+    });
+
+    it('shows one row per stream URL', () => {
+        const first = createChannel('first', 'http://example.test/shared');
+        const duplicate = createChannel(
+            'duplicate',
+            'http://example.test/shared'
+        );
+        const other = createChannel('other', 'http://example.test/other');
+
+        fixture.componentInstance.channelList = [first, duplicate, other];
+        fixture.componentRef.setInput('activeView', 'all');
+        fixture.detectChanges();
+
+        expect(
+            fixture.componentInstance
+                .displayedChannels()
+                .map((channel) => channel.id)
+        ).toEqual(['first', 'other']);
+    });
+
+    it('lists every duplicate URL again when the setting is off', () => {
+        hideDuplicateChannels.set(false);
+        const first = createChannel('first', 'http://example.test/shared');
+        const duplicate = createChannel(
+            'duplicate',
+            'http://example.test/shared'
+        );
+
+        fixture.componentInstance.channelList = [first, duplicate];
+        fixture.componentRef.setInput('activeView', 'all');
+        fixture.detectChanges();
+
+        expect(
+            fixture.componentInstance
+                .displayedChannels()
+                .map((channel) => channel.id)
+        ).toEqual(['first', 'duplicate']);
+    });
+
+    it('trims leading and trailing spaces from channel names when the list loads', () => {
+        const padded = createChannel('news', 'https://example.test/news');
+        padded.name = '  BBC News  ';
+        padded.tvg.name = '\tBBC News\t';
+
+        fixture.componentInstance.channelList = [padded];
+
+        expect(fixture.componentInstance.channelList[0].name).toBe('BBC News');
+        expect(fixture.componentInstance.channelList[0].tvg.name).toBe(
+            'BBC News'
+        );
     });
 });

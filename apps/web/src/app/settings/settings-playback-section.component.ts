@@ -1,3 +1,4 @@
+import { SettingsStreamTestingSectionComponent } from './settings-stream-testing-section.component';
 import { CommonModule } from '@angular/common';
 import {
     Component,
@@ -32,6 +33,7 @@ import { merge } from 'rxjs';
     selector: 'app-settings-playback-section',
     providers: [provideFormFieldDefaults()],
     imports: [
+        SettingsStreamTestingSectionComponent,
         CommonModule,
         MatButtonModule,
         MatFormFieldModule,
@@ -63,6 +65,26 @@ export class SettingsPlaybackSectionComponent {
     readonly form = input.required<FormGroup>();
 
     readonly players = input.required<SettingsPlayerOption[]>();
+
+    /** Keep a saved, unavailable player visible without offering it as a new choice. */
+    get displayPlayers(): (SettingsPlayerOption & { disabled?: boolean })[] {
+        const players = this.players();
+        if (
+            this.form().get('player')?.value !== VideoPlayer.EmbeddedMpv ||
+            players.some((player) => player.id === VideoPlayer.EmbeddedMpv)
+        ) {
+            return players;
+        }
+        return [
+            ...players,
+            {
+                id: VideoPlayer.EmbeddedMpv,
+                labelKey: 'SETTINGS.PLAYER_EMBEDDED_MPV',
+                disabled: true,
+            },
+        ];
+    }
+
     readonly streamFormatEnum = input.required<typeof StreamFormat>();
     readonly isDesktop = input(false);
     /** Frame-copy embedded MPV engine is possible on this machine */

@@ -32,7 +32,8 @@ import {
     extractDrmFromRaw,
     isDashChannel,
     isDashStreamUrl,
-    isLikelyM3uMovie,
+    shouldBrowseM3uVod,
+    m3uContentTypeForSection,
     isLikelyM3uVod,
     isM3uCatchupPlaybackSupported,
     resolveM3uCatchupUrl,
@@ -121,7 +122,6 @@ import {
     RecordingsService,
     RuntimeCapabilitiesService,
     SettingsStore,
-    TmdbEnrichmentService,
 } from '@iptvnator/services';
 import { PlaybackHistoryGate } from '@iptvnator/playback/data-access';
 import {
@@ -254,7 +254,6 @@ export class VideoPlayerComponent
     private readonly liveSidebarStateService = inject(
         LiveLayoutSidebarStateService
     );
-    private readonly tmdbEnrichment = inject(TmdbEnrichmentService);
     private readonly externalPlayback = inject(PORTAL_EXTERNAL_PLAYBACK);
     private readonly workspaceHeaderContext = inject(
         WorkspaceHeaderContextService
@@ -413,10 +412,9 @@ export class VideoPlayerComponent
      * fullscreen panel's row filter, so the two can never disagree.
      */
     private opensMovieDetail(channel: Channel): boolean {
-        return (
-            this.settingsStore.m3uVodDetails?.() !== false &&
-            this.tmdbEnrichment.isEnabled() &&
-            isLikelyM3uMovie(channel)
+        return shouldBrowseM3uVod(
+            channel,
+            this.settingsStore.m3uVodDetails?.() !== false
         );
     }
     /** Full multi-day programme window for the active channel (timeline). */
@@ -482,9 +480,12 @@ export class VideoPlayerComponent
         ),
         { initialValue: '' }
     );
-    readonly timelineChannelLogo = computed(
-        () => this.activeChannel()?.tvg?.logo?.trim() || this.epgChannelLogo()
-    );
+    readonly timelineChannelLogo = computed(() => {
+        const playlistLogo = this.activeChannel()?.tvg?.logo?.trim() ?? '';
+        return this.settingsStore.preferEpgIcons?.() === true
+            ? this.epgChannelLogo() || playlistLogo
+            : playlistLogo || this.epgChannelLogo();
+    });
     private readonly epgNowMs = signal(Date.now());
     readonly playbackChannel = computed<Channel | null>(() => {
         const activeChannel = this.activeChannel();
@@ -567,7 +568,8 @@ export class VideoPlayerComponent
         };
     }
     readonly sidebarStorageKey = computed(() =>
-        this.activeView() === 'groups'
+        this.activeView() === 'groups' ||
+        m3uContentTypeForSection(this.activeView())
             ? M3U_GROUPS_SIDEBAR_STORAGE_KEY
             : M3U_SIDEBAR_STORAGE_KEY
     );
@@ -1262,7 +1264,7 @@ export class VideoPlayerComponent
         const record = () =>
             void this.persistRecentlyViewedChannel(playlistId, channel);
         if (channel.radio !== 'true' && !this.shouldShowInlinePlayer(channel)) {
-            record();
+            if (!this.opensMovieDetail(channel)) record();
             return;
         }
 
@@ -1622,6 +1624,22 @@ export class VideoPlayerComponent
      * engines persist their adjustments there and never call back, so the
      * remounted player would otherwise start at the pre-adjustment value.
      */
+    startDetailPlayback(): void {
+        this.refreshVolumeFromBus();
+        const channel = this.activeChannel();
+        if (channel && !this.shouldShowInlinePlayer(channel)) {
+            const playlistId = this.activePlaylistId();
+            if (playlistId)
+                void this.persistRecentlyViewedChannel(playlistId, channel);
+            this.store.dispatch(
+                ChannelActions.setActiveChannel({
+                    channel,
+                    startPlayback: true,
+                })
+            );
+        }
+    }
+
     refreshVolumeFromBus(): void {
         this.volume.set(readStoredVolume());
     }

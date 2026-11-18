@@ -39,9 +39,49 @@
                 <header class="groups-nav-header">
                     <div class="groups-nav-header__content">
                         <h2 class="groups-nav-title">
-                            {{ 'CHANNELS.GROUPS' | translate }}
+                            {{ titleKey() | translate }}
                         </h2>
                         <div class="groups-nav-actions">
+                            <button
+                                type="button"
+                                mat-icon-button
+                                class="groups-nav-action"
+                                data-test-id="groups-sort-button"
+                                [matMenuTriggerFor]="groupSortMenu"
+                                [matTooltip]="
+                                    ('WORKSPACE.SORT_LABEL' | translate) +
+                                    ('CHANNELS.GROUPS' | translate)
+                                "
+                                [attr.aria-label]="
+                                    ('WORKSPACE.SORT_LABEL' | translate) +
+                                    ('CHANNELS.GROUPS' | translate)
+                                "
+                            >
+                                <mat-icon>sort_by_alpha</mat-icon>
+                            </button>
+                            <mat-menu #groupSortMenu="matMenu">
+                                @for (mode of groupSortModes; track mode) {
+                                    <button
+                                        mat-menu-item
+                                        [appMenuItemRadio]="
+                                            groupSortMode() === mode
+                                        "
+                                        (click)="setGroupSortMode(mode)"
+                                    >
+                                        <mat-icon appMenuItemRadioCheck
+                                            >check</mat-icon
+                                        >
+                                        <span>{{
+                                            (mode === 'server'
+                                                ? 'CHANNELS.SORT_GROUPS_DEFAULT'
+                                                : mode === 'name-asc'
+                                                  ? 'WORKSPACE.SORT_NAME_ASC'
+                                                  : 'WORKSPACE.SORT_NAME_DESC'
+                                            ) | translate
+                                        }}</span>
+                                    </button>
+                                }
+                            </mat-menu>
                             <button
                                 type="button"
                                 mat-icon-button
@@ -119,6 +159,11 @@
                                 type="button"
                                 class="nav-item group-nav-item"
                                 [attr.data-group-key]="group.key"
+                                [matTooltip]="
+                                    group.key ||
+                                    ('CHANNELS.UNGROUPED' | translate)
+                                "
+                                [matTooltipShowDelay]="400"
                                 [class.selected]="
                                     selectedGroupKey() === group.key
                                 "
@@ -310,6 +355,7 @@
                                 ('CHANNELS.UNNAMED_CHANNEL' | translate))
                         "
                         [logo]="getLogoForChannel(channel)"
+                        [logoFallback]="getPlaylistLogoForChannel(channel)"
                         [showEpg]="shouldShowEpg()"
                         [showDetailsContextMenu]="true"
                         [isRadio]="channel?.radio === 'true'"
@@ -323,7 +369,7 @@
                             epgMetadataMap().get(getChannelEpgKey(channel))
                                 ?.progressPercentage ?? 0
                         "
-                        [selected]="activeChannelUrl() === channel?.url"
+                        [selected]="isChannelActive(channel)"
                         [showFavoriteButton]="true"
                         [isFavorite]="
                             channel?.url
@@ -389,5 +435,25 @@
     #groupLockMenu
     lockLabelKey="PARENTAL_LOCK.LOCK_GROUP"
     unlockLabelKey="PARENTAL_LOCK.UNLOCK_GROUP"
+    [showLockToggle]="lockedGroupTitles() !== null"
     (toggleRequested)="onGroupLockToggle($event)"
-/>
+>
+    <span
+        [matTooltip]="
+            !streamProbe.isAvailable
+                ? ('CHANNELS.GROUP_TEST_DESKTOP' | translate)
+                : ''
+        "
+    >
+        <button
+            mat-menu-item
+            type="button"
+            data-test-id="test-group-channels"
+            [disabled]="!streamProbe.isAvailable"
+            (click)="testGroupChannels()"
+        >
+            <mat-icon>network_check</mat-icon>
+            <span>{{ 'CHANNELS.TEST_GROUP' | translate }}</span>
+        </button>
+    </span>
+</app-category-lock-menu>

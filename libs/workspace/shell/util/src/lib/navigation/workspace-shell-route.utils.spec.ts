@@ -4,6 +4,23 @@ import {
 } from './workspace-shell-route.utils';
 
 describe('workspace-shell-route.utils', () => {
+    it.each(['live', 'series', 'vod'])(
+        'supports local search on the M3U %s section',
+        (section) => {
+            expect(
+                parseWorkspaceShellRoute(
+                    `/workspace/playlists/source/${section}?q=example`
+                )
+            ).toEqual(
+                expect.objectContaining({
+                    section,
+                    searchMode: 'local-filter',
+                    usesQuerySearch: true,
+                    contextPanel: 'none',
+                })
+            );
+        }
+    );
     it('parses top-level workspace pages', () => {
         expect(parseWorkspaceShellRoute('/workspace')).toEqual(
             expect.objectContaining({

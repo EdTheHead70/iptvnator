@@ -256,6 +256,27 @@ describe('SettingsStore dashboard rail settings', () => {
         expect(store.getSettings().epgEnabled).toBe(true);
     });
 
+    it('loads old defaults and preserves stream testing settings on unrelated saves', async () => {
+        const store = injector.get(SettingsStore);
+        await store.loadSettings();
+        expect(store.getSettings().streamTesting?.concurrency).toBe(2);
+        const settings = {
+            concurrency: 1,
+            timeoutSeconds: 5,
+            method: 'GET' as const,
+            headFallback: false,
+            rangeBytes: 16384,
+            cacheSeconds: 0,
+        };
+        await store.updateSettings({ streamTesting: settings });
+        await store.updateSettings({ theme: Theme.DarkTheme });
+        expect(store.getSettings().streamTesting).toEqual(settings);
+        expect(
+            storage.set.mock.calls[storage.set.mock.calls.length - 1]?.[1]
+                .streamTesting
+        ).toEqual(settings);
+    });
+
     it('preserves an explicit age-rating country across saved settings reloads', async () => {
         storedSettings = { ageRatingCountry: 'DE' };
         const store = injector.get(SettingsStore);

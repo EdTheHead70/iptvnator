@@ -270,6 +270,21 @@ describe('VideoPlayerComponent — M3U movie recognition gate', () => {
         expect(fixture.nativeElement.querySelector('.video-player')).toBeNull();
     });
 
+    it.each(['movie', 'series'])(
+        'shows typed %s information even without metadata or recognition settings',
+        (type) => {
+            tmdbEnabled.set(false);
+            m3uVodDetails.set(false);
+            syncStoreState({ ...liveChannel, type });
+            fixture.detectChanges();
+            expect(component.showMovieDetail()).toBe(true);
+            expect(
+                fixture.nativeElement.querySelector('app-m3u-vod-detail')
+            ).not.toBeNull();
+            expect(fixture.nativeElement.querySelector('.epg')).toBeNull();
+        }
+    );
+
     it('keeps the live layout for a live channel', () => {
         syncStoreState(liveChannel);
         fixture.detectChanges();
@@ -293,12 +308,12 @@ describe('VideoPlayerComponent — M3U movie recognition gate', () => {
         expect(fixture.nativeElement.querySelector('.epg')).not.toBeNull();
     });
 
-    it('stays off while TMDB enrichment is not enabled', () => {
+    it('opens information even while TMDB enrichment is disabled', () => {
         tmdbEnabled.set(false);
         syncStoreState(movieChannel);
         fixture.detectChanges();
 
-        expect(component.showMovieDetail()).toBe(false);
+        expect(component.showMovieDetail()).toBe(true);
     });
 
     it('treats a missing toggle value as enabled (default on)', () => {
@@ -327,7 +342,7 @@ describe('VideoPlayerComponent — M3U movie recognition gate', () => {
                 fixture.detectChanges();
 
                 expect(component.embeddedPlayback()?.isLive).toBe(false);
-                expect(component.showMovieDetail()).toBe(tmdb && details);
+                expect(component.showMovieDetail()).toBe(details);
             }
         );
 

@@ -34,7 +34,11 @@ import {
     restorePlaylistChannelSortMode,
     sortPlaylistChannelItems,
 } from '../channel-list-sort.util';
-import { resolveChannelLogo } from '../channel-logo-fallback.util';
+import {
+    resolveChannelLogo,
+    resolvePlaylistLogo,
+} from '../channel-logo-fallback.util';
+import { isSameChannelEntry } from '@iptvnator/shared/m3u-utils';
 import { buildChannelEpgMetadataMap } from '../epg-enrichment.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { EpgMappingDialogComponent } from '../epg-mapping-dialog/epg-mapping-dialog.component';
@@ -95,6 +99,8 @@ export class AllChannelsViewComponent {
     /** EPG map for channel enrichment */
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
     readonly channelIconMap = input.required<Map<string, string>>();
+    /** Settings → EPG: show the EPG icon instead of the playlist logo. */
+    readonly preferEpgIcons = input(false);
 
     /** Progress tick to trigger progress recalculation */
     readonly progressTick = input.required<number>();
@@ -106,8 +112,8 @@ export class AllChannelsViewComponent {
     /** Item size for virtual scroll */
     readonly itemSize = input.required<number>();
 
-    /** Currently active channel URL */
-    readonly activeChannelUrl = input<string | undefined>();
+    /** Currently active playlist entry, matched field-for-field. */
+    readonly activeChannel = input<Channel | null | undefined>();
 
     /** Set of favorite channel URLs */
     readonly favoriteIds = input<Set<string>>(new Set());
@@ -184,8 +190,21 @@ export class AllChannelsViewComponent {
      * OnPush + virtual scroll only ~50 rows check at a time so direct calls are
      * cheaper than rebuilding a separate logo map per channels/iconMap change.
      */
+    getPlaylistLogoForChannel(channel: Channel): string {
+        return resolvePlaylistLogo(channel);
+    }
+
     getLogoForChannel(channel: Channel): string {
-        return resolveChannelLogo(channel, this.channelIconMap());
+        return resolveChannelLogo(
+            channel,
+            this.channelIconMap(),
+            this.preferEpgIcons()
+        );
+    }
+
+    isChannelActive(channel: Channel): boolean {
+        const active = this.activeChannel();
+        return !!active && isSameChannelEntry(channel, active);
     }
 
     trackByFn(_: number, channel: Channel): string {

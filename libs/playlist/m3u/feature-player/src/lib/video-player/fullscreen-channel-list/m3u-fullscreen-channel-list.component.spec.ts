@@ -86,7 +86,15 @@ describe('M3uFullscreenChannelListComponent', () => {
     it('labels the icon-only view segments for assistive tech and tooltips', () => {
         fixture.detectChanges();
 
-        for (const view of ['all', 'groups', 'favorites', 'recent']) {
+        for (const view of [
+            'all',
+            'groups',
+            'live',
+            'series',
+            'vod',
+            'favorites',
+            'recent',
+        ]) {
             const segment = chip(view);
             expect(segment?.getAttribute('role')).toBe('tab');
             expect(segment?.getAttribute('aria-label')).toBeTruthy();
@@ -95,6 +103,17 @@ describe('M3uFullscreenChannelListComponent', () => {
             );
         }
     });
+
+    it.each(['live', 'series', 'vod'])(
+        'opens on the routed %s content type',
+        (view) => {
+            fixture.componentRef.setInput('initialView', view);
+            fixture.detectChanges();
+            expect(component.view()).toBe(view);
+            expect(container().activeView()).toBe(view);
+            expect(chip(view)?.getAttribute('aria-selected')).toBe('true');
+        }
+    );
 
     it('falls back to all channels for a view the panel does not offer', () => {
         fixture.componentRef.setInput('initialView', 'something-else');

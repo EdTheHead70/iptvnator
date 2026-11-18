@@ -179,6 +179,28 @@
                     ></mat-slide-toggle>
                 </div>
             </div>
+
+            <div class="setting-item" data-setting-id="hide-duplicate-channels">
+                <div class="setting-item__meta">
+                    <h4 id="hide-duplicate-channels-label">
+                        {{ 'SETTINGS.HIDE_DUPLICATE_CHANNELS' | translate }}
+                    </h4>
+                    <p id="hide-duplicate-channels-description">
+                        {{
+                            'SETTINGS.HIDE_DUPLICATE_CHANNELS_DESCRIPTION'
+                                | translate
+                        }}
+                    </p>
+                </div>
+                <div class="setting-item__control setting-item__toggle">
+                    <mat-slide-toggle
+                        formControlName="hideDuplicateChannels"
+                        aria-labelledby="hide-duplicate-channels-label"
+                        aria-describedby="hide-duplicate-channels-description"
+                        data-test-id="hide-duplicate-channels-toggle"
+                    ></mat-slide-toggle>
+                </div>
+            </div>
         </div>
     </section>
 

@@ -839,12 +839,12 @@ shared controls are on and for Embedded MPV — the legacy vendor chrome
 fullscreens the engine's own element, outside which the panel cannot render,
 so the toggle is hidden there) makes the host return `null`, which removes
 every affordance. The M3U host also returns `null` while its VOD detail hosts
-the player (`showMovieDetail`): a movie is not something to zap away from,
+the player (`showMovieDetail`): a movie or series detail is not something to zap away from,
 and the nested `WebPlayerViewComponent` would otherwise inherit the
 component-level provider.
 
 Providers today: `VideoPlayerComponent` (M3U; `app-m3u-fullscreen-channel-list`
-adds a local icon-only all/groups/favorites/recent switcher — one segmented
+adds a local icon-only all/groups/live/series/movies/favorites/recent switcher — one segmented
 row, labels in tooltip and `aria-label` — over a second
 `ChannelListContainerComponent` instance in `compact` mode, which drops the
 container's per-view title/sort/collapse headers (`showHeader` on the

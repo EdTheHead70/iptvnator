@@ -52,7 +52,10 @@ pnpm release:screenshots --cinematic --release v0-25 --only dashboard-live-chann
 The preset reads `tools/release/screenshots.cinematic.manifest.json`, uses a
 1600×1100 viewport, pauses the real hero carousel and selects its slide by
 accessible name. It expands detail synopses through their normal More button
-and waits for fonts, image decoding and transitions before saving PNGs.
+and waits for fonts, image decoding and transitions before saving PNGs. The
+two detail shots require that toggle: if it never appears, or a late render
+collapses the text, the capture fails instead of publishing a collapsed
+synopsis.
 After source import, navigation explicitly selects the synthetic movie category;
 the app no longer assumes a category is selected on the first visit.
 Outputs are in `apps/website/public/blog/v0-25/screenshots/`:
@@ -83,7 +86,9 @@ all eighteen Skyline Sentinels episodes live in
 
 The tool's versioned cache keys follow the application's metadata wire contract.
 When that contract changes, update the fixture and validate the full Electron
-capture: the hero requires the seeded synopsis, so a stale cache key fails it.
+capture: a stale key sends the resolver to TMDB, and the external-request gate
+fails the run even though the attempt is blocked. The hero text is the same
+provider plot, so it cannot prove the seeded cache was used.
 Classification and recommendation fields are explicitly cached as empty local
 results, preventing a legacy-cache upgrade from attempting a metadata request.
 
@@ -165,5 +170,6 @@ Outputs are separate from captures, under
   hashes, dimensions and split geometry
 
 Re-run the command after refreshing its two source screenshots. The manifest
-records which exact source bytes were used. The composition and CLI checks run
-with `pnpm nx test release-tools`.
+records which exact source bytes were used, and `pnpm nx test release-tools`
+re-hashes every committed preview against its manifest, so refreshing a source
+without regenerating the preview fails.

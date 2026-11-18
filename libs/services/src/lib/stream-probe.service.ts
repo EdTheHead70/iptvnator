@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+    normalizeStreamTestingSettings,
+    StreamTestingSettings,
+} from '@iptvnator/shared/interfaces';
 import type {
     StreamProbeHeaders,
     VodSourceProbeResult,
@@ -16,8 +20,7 @@ import { redactSensitiveData } from '@iptvnator/shared/logging';
  * Probing is explicitly user-triggered — this is not a background pinger.
  */
 
-/** Results older than this are re-fetched; a stream can die at any moment. */
-const CACHE_TTL_MS = 30_000;
+/** A cached answer and its completion time; each test chooses its cache lifetime. */
 
 interface CacheEntry {
     result: VodSourceProbeResult;
@@ -28,7 +31,10 @@ interface CacheEntry {
 export class StreamProbeService {
     private readonly cache = new Map<string, CacheEntry>();
     /** Deduplicates concurrent probes of the same URL into one request. */
-    private readonly inFlight = new Map<string, Promise<VodSourceProbeResult>>();
+    private readonly inFlight = new Map<
+        string,
+        Promise<VodSourceProbeResult>
+    >();
 
     get isAvailable(): boolean {
         return (
@@ -48,14 +54,23 @@ export class StreamProbeService {
     private cacheKey(
         url: string,
         method: 'GET' | 'HEAD',
-        headers?: StreamProbeHeaders
+        headers?: StreamProbeHeaders,
+        options?: Partial<StreamTestingSettings>
     ): string {
+        const settings = normalizeStreamTestingSettings(options);
         return [
             url,
             method,
             headers?.userAgent ?? '',
             headers?.referer ?? '',
             headers?.origin ?? '',
+            ...(options
+                ? [
+                      settings.timeoutSeconds,
+                      settings.rangeBytes,
+                      settings.headFallback,
+                  ]
+                : []),
         ].join('\u0000');
     }
 
@@ -63,10 +78,14 @@ export class StreamProbeService {
     peek(
         url: string,
         method: 'GET' | 'HEAD' = 'HEAD',
-        headers?: StreamProbeHeaders
+        headers?: StreamProbeHeaders,
+        options?: Partial<StreamTestingSettings>
     ): VodSourceProbeResult | null {
-        const entry = this.cache.get(this.cacheKey(url, method, headers));
-        if (!entry || Date.now() - entry.storedAt > CACHE_TTL_MS) {
+        const ttl = normalizeStreamTestingSettings(options).cacheSeconds * 1000;
+        const entry = this.cache.get(
+            this.cacheKey(url, method, headers, options)
+        );
+        if (!ttl || !entry || Date.now() - entry.storedAt > ttl) {
             return null;
         }
         return entry.result;
@@ -80,15 +99,16 @@ export class StreamProbeService {
     async probe(
         url: string,
         method: 'GET' | 'HEAD' = 'HEAD',
-        headers?: StreamProbeHeaders
+        headers?: StreamProbeHeaders,
+        options?: Partial<StreamTestingSettings>
     ): Promise<VodSourceProbeResult> {
         if (!this.isAvailable || !url) {
             // Not "offline" — we are simply unable to find out.
             return { status: 'unknown' };
         }
 
-        const key = this.cacheKey(url, method, headers);
-        const cached = this.peek(url, method, headers);
+        const key = this.cacheKey(url, method, headers, options);
+        const cached = this.peek(url, method, headers, options);
         if (cached) {
             return cached;
         }
@@ -98,9 +118,11 @@ export class StreamProbeService {
             return pending;
         }
 
-        const request = this.runProbe(url, method, headers).finally(() => {
-            this.inFlight.delete(key);
-        });
+        const request = this.runProbe(url, method, headers, options).finally(
+            () => {
+                this.inFlight.delete(key);
+            }
+        );
         this.inFlight.set(key, request);
         return request;
     }
@@ -113,27 +135,32 @@ export class StreamProbeService {
     private async runProbe(
         url: string,
         method: 'GET' | 'HEAD',
-        headers?: StreamProbeHeaders
+        headers?: StreamProbeHeaders,
+        options?: Partial<StreamTestingSettings>
     ): Promise<VodSourceProbeResult> {
+        const settings = normalizeStreamTestingSettings(options);
+        const request = (requestMethod: 'HEAD' | 'GET') =>
+            options
+                ? window.electron.probeStreamUrl(url, requestMethod, headers, {
+                      timeoutMs: settings.timeoutSeconds * 1000,
+                      rangeBytes: settings.rangeBytes,
+                  })
+                : window.electron.probeStreamUrl(url, requestMethod, headers);
         let result: VodSourceProbeResult;
 
         try {
-            let response = await window.electron.probeStreamUrl(
-                url,
-                method,
-                headers
-            );
+            let response = await request(method);
 
             // Plenty of stream servers reject HEAD outright yet serve the media
             // happily over GET. Reporting those as unavailable would be a
             // confident lie, so retry once with the ranged GET the main process
             // already supports.
-            if (method === 'HEAD' && refusesHeadRequests(response.status)) {
-                response = await window.electron.probeStreamUrl(
-                    url,
-                    'GET',
-                    headers
-                );
+            if (
+                settings.headFallback &&
+                method === 'HEAD' &&
+                refusesHeadRequests(response.status)
+            ) {
+                response = await request('GET');
             }
 
             result = {
@@ -152,8 +179,8 @@ export class StreamProbeService {
         // Only cache answers. An 'unknown' is a failure to measure, and
         // caching it would keep a perfectly good source looking unverified
         // for the whole TTL.
-        if (result.status !== 'unknown') {
-            this.cache.set(this.cacheKey(url, method, headers), {
+        if (settings.cacheSeconds > 0 && result.status !== 'unknown') {
+            this.cache.set(this.cacheKey(url, method, headers, options), {
                 result,
                 storedAt: Date.now(),
             });

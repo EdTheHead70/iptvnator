@@ -636,8 +636,8 @@ void renderSoftwareFrame(const std::shared_ptr<Session>& session)
     CGDataProviderRef provider = CGDataProviderCreateWithCFData(frameData);
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGBitmapInfo bitmapInfo =
-        static_cast<CGBitmapInfo>(kCGBitmapByteOrder32Little |
-                                  kCGImageAlphaNoneSkipFirst);
+        static_cast<CGBitmapInfo>(kCGBitmapByteOrder32Little) |
+        static_cast<CGBitmapInfo>(kCGImageAlphaNoneSkipFirst);
     CGImageRef image = CGImageCreate(
         static_cast<size_t>(widthPixels),
         static_cast<size_t>(heightPixels),
@@ -1402,7 +1402,7 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                     property->format == MPV_FORMAT_STRING &&
                     property->data) {
                     const auto* pathValue =
-                        static_cast<char*>(property->data);
+                        *static_cast<char**>(property->data);
                     session->snapshot.streamUrl = pathValue ? pathValue : "";
                     break;
                 }
@@ -1436,7 +1436,7 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                 if (propertyName == "aid" &&
                     property->format == MPV_FORMAT_STRING &&
                     property->data) {
-                    const auto* aidValue = static_cast<char*>(property->data);
+                    const auto* aidValue = *static_cast<char**>(property->data);
                     int64_t selectedTrackId = -1;
                     if (aidValue && parseIntegerString(aidValue, selectedTrackId)) {
                         updateSelectedAudioTrack(
@@ -1450,7 +1450,7 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                 if (propertyName == "sid" &&
                     property->format == MPV_FORMAT_STRING &&
                     property->data) {
-                    const auto* sidValue = static_cast<char*>(property->data);
+                    const auto* sidValue = *static_cast<char**>(property->data);
                     int64_t selectedTrackId = -1;
                     if (sidValue && parseIntegerString(sidValue, selectedTrackId)) {
                         updateSelectedSubtitleTrack(
@@ -1475,9 +1475,13 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                     property->format == MPV_FORMAT_STRING &&
                     property->data) {
                     const auto* aspectValue =
-                        static_cast<char*>(property->data);
+                        *static_cast<char**>(property->data);
+                    // String property events contain a char**, not the text.
+                    // mpv reports the unset override as "-1.000000".
                     session->snapshot.aspectOverride =
-                        aspectValue ? aspectValue : "no";
+                        aspectValue && *aspectValue && std::atof(aspectValue) > 0
+                            ? aspectValue
+                            : "no";
                     break;
                 }
 
@@ -1665,7 +1669,8 @@ bool createOpenGLView(const std::shared_ptr<Session>& session)
       GLint swapInterval = 1;
       [session->openGLContext setValues:&swapInterval
                            forParameter:NSOpenGLContextParameterSwapInterval];
-      [session->openGLContext setView:openGLView];
+      // NSOpenGLView owns the context and binds its drawable when attached.
+      // Calling the deprecated NSOpenGLContext::setView: is redundant.
       session->containerView = openGLView;
       [session->hostView addSubview:session->containerView
                   positioned:NSWindowAbove

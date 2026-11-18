@@ -25,9 +25,7 @@ export interface SearchScopeContext {
     section: PortalRailSection | null;
     translate: TranslateFn;
     xtreamCategory:
-        | { category_name?: string; name?: string }
-        | null
-        | undefined;
+        { category_name?: string; name?: string } | null | undefined;
     stalkerCategoryName: string;
 }
 
@@ -144,6 +142,10 @@ export function resolveSearchScopeLabel(ctx: SearchScopeContext): string {
 
     if (!context || !section) {
         return '';
+    }
+
+    if (context.provider === 'playlists') {
+        return translateRailSection(section, translate);
     }
 
     if (

@@ -56,6 +56,13 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
         keywords: ['channel name', 'country', 'prefix', 'tag'],
     },
     {
+        id: 'hide-duplicate-channels',
+        section: 'general',
+        labelKey: 'SETTINGS.HIDE_DUPLICATE_CHANNELS',
+        descriptionKey: 'SETTINGS.HIDE_DUPLICATE_CHANNELS_DESCRIPTION',
+        keywords: ['channel', 'duplicate', 'url', 'stream', 'list'],
+    },
+    {
         id: 'portal-connectivity-guard',
         section: 'general',
         labelKey: 'SETTINGS.PORTAL_CONNECTIVITY_GUARD',
@@ -137,6 +144,14 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
         labelKey: 'SETTINGS.EPG_OFFSET_TITLE',
         descriptionKey: 'SETTINGS.EPG_OFFSET_HINT',
         keywords: ['epg', 'timezone', 'time shift', 'offset', 'hours'],
+        requires: ['epg-display'],
+    },
+    {
+        id: 'prefer-epg-icons',
+        section: 'epg',
+        labelKey: 'SETTINGS.PREFER_EPG_ICONS_TITLE',
+        descriptionKey: 'SETTINGS.PREFER_EPG_ICONS_HINT',
+        keywords: ['epg', 'logo', 'icon', 'channel', 'tvg-logo'],
         requires: ['epg-display'],
     },
     {

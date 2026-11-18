@@ -33,6 +33,7 @@ import {
     normalizeSubtitleStyle,
 } from '@iptvnator/shared/interfaces';
 import { isExternalPlayerTraceEnabled, trace } from './debug-trace';
+import { defaultRecordingFolderPath } from '../util/default-recording-folder';
 import { toNativeViewBounds } from './embedded-mpv-bounds.util';
 import { embeddedMpvRecordingTracker } from './embedded-mpv-recording-tracker';
 import {
@@ -1008,14 +1009,20 @@ export class EmbeddedMpvNativeService {
     }
 
     getDefaultRecordingFolder(): string {
-        return app.getPath('downloads');
+        return defaultRecordingFolderPath();
     }
 
     async selectRecordingFolder(): Promise<string | null> {
+        const defaultFolder = this.getDefaultRecordingFolder();
+        try {
+            mkdirSync(defaultFolder, { recursive: true });
+        } catch {
+            // The picker can still target another folder.
+        }
         const result = await dialog.showOpenDialog({
             properties: ['openDirectory', 'createDirectory'],
             title: 'Select Recording Folder',
-            defaultPath: this.getDefaultRecordingFolder(),
+            defaultPath: defaultFolder,
         });
 
         if (result.canceled || result.filePaths.length === 0) {

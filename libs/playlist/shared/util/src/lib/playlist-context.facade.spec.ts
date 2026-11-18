@@ -257,6 +257,21 @@ describe('PlaylistContextFacade', () => {
         ).toEqual(['workspace', 'stalker', stalkerA._id, 'favorites']);
     });
 
+    it.each(['live', 'series', 'vod'])(
+        'keeps the M3U %s section when switching sources',
+        (section) => {
+            const service = instantiateFacade();
+            expect(
+                service.resolveTargetCommands('playlists', m3uB._id, {
+                    inWorkspace: true,
+                    provider: 'playlists',
+                    playlistId: m3uA._id,
+                    section,
+                })
+            ).toEqual(['workspace', 'playlists', m3uB._id, section]);
+        }
+    );
+
     it('falls back to M3U all when the current section has no M3U equivalent', () => {
         const service = instantiateFacade();
 
@@ -265,7 +280,7 @@ describe('PlaylistContextFacade', () => {
                 inWorkspace: true,
                 provider: 'xtreams',
                 playlistId: xtreamA._id,
-                section: 'live',
+                section: 'search',
             })
         ).toEqual(['workspace', 'playlists', m3uA._id, 'all']);
     });
@@ -293,7 +308,7 @@ describe('PlaylistContextFacade', () => {
                 inWorkspace: true,
                 provider: 'xtreams',
                 playlistId: xtreamA._id,
-                section: 'live',
+                section: 'search',
             })
         ).toEqual(['workspace', 'playlists', m3uA._id, 'all']);
     });

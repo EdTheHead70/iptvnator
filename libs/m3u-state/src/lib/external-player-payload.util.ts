@@ -3,7 +3,7 @@ import {
     PlaylistMeta,
     VideoPlayer,
 } from '@iptvnator/shared/interfaces';
-import { isDashChannel } from '@iptvnator/shared/m3u-utils';
+import { isDashChannel, shouldBrowseM3uVod } from '@iptvnator/shared/m3u-utils';
 
 export type ExternalPlayerHeaderFallback = Pick<
     PlaylistMeta,
@@ -18,7 +18,11 @@ export type ExternalPlayerHeaderFallback = Pick<
  */
 export function shouldAutoLaunchExternalPlayer(
     settings:
-        | { player?: VideoPlayer; openStreamOnDoubleClick?: boolean }
+        | {
+              player?: VideoPlayer;
+              openStreamOnDoubleClick?: boolean;
+              m3uVodDetails?: boolean;
+          }
         | null
         | undefined,
     startPlayback: boolean | undefined,
@@ -28,6 +32,12 @@ export function shouldAutoLaunchExternalPlayer(
     if (!settings || Object.keys(settings).length === 0) {
         return false;
     }
+
+    if (
+        shouldBrowseM3uVod(channel, settings.m3uVodDetails !== false) &&
+        startPlayback !== true
+    )
+        return false;
 
     const startRequested =
         !settings.openStreamOnDoubleClick || startPlayback === true;

@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import {
     composeThemePreview,
     parseThemePreviewArguments,
 } from './generate-theme-preview.mjs';
+
+const repositoryRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../..'
+);
 
 const lightColor = [240, 244, 250, 255];
 const darkColor = [16, 20, 28, 255];
@@ -118,6 +127,63 @@ describe('theme preview CLI', () => {
             ['--shot'],
         ]) {
             assert.throws(() => parseThemePreviewArguments(args, '0.25.0'));
+        }
+    });
+});
+
+describe('committed theme previews', () => {
+    it('keeps every committed preview matching its recorded sources and outputs', async () => {
+        const blogRoot = path.join(
+            repositoryRoot,
+            'apps/website/public/blog'
+        );
+        const manifests = readdirSync(blogRoot, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .flatMap((entry) => {
+                const previews = path.join(blogRoot, entry.name, 'previews');
+                if (!existsSync(previews)) return [];
+                return readdirSync(previews)
+                    .filter((file) => file.endsWith('.json'))
+                    .map((file) => path.join(previews, file));
+            })
+            .map((file) => ({
+                file,
+                manifest: JSON.parse(readFileSync(file, 'utf8')),
+            }))
+            .filter(
+                ({ manifest }) =>
+                    Array.isArray(manifest.sources) &&
+                    Array.isArray(manifest.outputs)
+            );
+        assert.ok(
+            manifests.length > 0,
+            'no committed theme preview manifest found'
+        );
+
+        for (const { file: manifestFile, manifest } of manifests) {
+            const resolve = (relative) =>
+                path.resolve(path.dirname(manifestFile), relative);
+            for (const entry of [...manifest.sources, ...manifest.outputs]) {
+                const file = resolve(entry.file);
+                assert.equal(
+                    createHash('sha256')
+                        .update(readFileSync(file))
+                        .digest('hex'),
+                    entry.sha256,
+                    path.relative(repositoryRoot, file) + ' hash'
+                );
+                const { width, height } = await sharp(file).metadata();
+                assert.equal(width, manifest.width, entry.file + ' width');
+                assert.equal(height, manifest.height, entry.file + ' height');
+            }
+            for (const output of manifest.outputs) {
+                const { format } = await sharp(resolve(output.file)).metadata();
+                assert.equal(
+                    format,
+                    output.file.endsWith('.webp') ? 'webp' : 'png',
+                    output.file + ' format'
+                );
+            }
         }
     });
 });

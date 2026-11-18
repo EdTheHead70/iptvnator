@@ -5,6 +5,7 @@ import { M3uVodMetadataService } from './m3u-vod-metadata.service';
 describe('M3uVodMetadataService', () => {
     let service: M3uVodMetadataService;
     let enrichMovie: jest.Mock;
+    let enrichTv: jest.Mock;
     let isEnabled: jest.Mock;
 
     /** Deferred promise so tests control exactly when a lookup settles. */
@@ -22,6 +23,7 @@ describe('M3uVodMetadataService', () => {
 
     beforeEach(() => {
         enrichMovie = jest.fn();
+        enrichTv = jest.fn();
         isEnabled = jest.fn().mockReturnValue(true);
 
         TestBed.configureTestingModule({
@@ -29,11 +31,40 @@ describe('M3uVodMetadataService', () => {
                 M3uVodMetadataService,
                 {
                     provide: TmdbEnrichmentService,
-                    useValue: { enrichMovie, isEnabled },
+                    useValue: { enrichMovie, enrichTv, isEnabled },
                 },
             ],
         });
         service = TestBed.inject(M3uVodMetadataService);
+    });
+
+    it('looks up the parent series title and maps TV information', async () => {
+        enrichTv.mockResolvedValue({
+            id: 1,
+            name: 'Example Show',
+            first_air_date: '2020-01-01',
+            overview: 'Series description',
+            episode_run_time: [42],
+        });
+        service.load({
+            id: 'series',
+            name: 'Example Show S01E02',
+            type: 'series',
+        });
+        await flush();
+        expect(enrichTv).toHaveBeenCalledWith({
+            title: 'Example Show',
+            year: null,
+        });
+        expect(enrichMovie).not.toHaveBeenCalled();
+        expect(service.state().details).toEqual(
+            expect.objectContaining({
+                title: 'Example Show',
+                overview: 'Series description',
+                runtime: 42,
+                release_date: '2020-01-01',
+            })
+        );
     });
 
     it('resolves a match and exposes the details', async () => {

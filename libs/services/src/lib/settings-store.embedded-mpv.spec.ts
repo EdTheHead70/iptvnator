@@ -6,7 +6,6 @@ import {
     EMBEDDED_MPV_SUPPORT_RECHECK_MS,
     EmbeddedMpvSupport,
     Settings,
-    STORE_KEY,
     VideoPlayer,
 } from '@iptvnator/shared/interfaces';
 import { EpgSourceSettingsService } from './epg-source-settings.service';
@@ -90,16 +89,24 @@ describe('SettingsStore saved Embedded MPV selection', () => {
         expect(storage.set).not.toHaveBeenCalled();
     });
 
-    it('falls back to the default player on a final unsupported answer', async () => {
+    it('preserves the saved player on a final unsupported answer', async () => {
         getEmbeddedMpvSupport.mockResolvedValue(MPV_MISSING);
 
         const store = await start();
 
-        expect(store.player()).toBe(VideoPlayer.VideoJs);
-        expect(storage.set).toHaveBeenCalledWith(
-            STORE_KEY.Settings,
-            expect.objectContaining({ player: VideoPlayer.VideoJs })
-        );
+        expect(store.player()).toBe(VideoPlayer.EmbeddedMpv);
+        expect(storage.set).not.toHaveBeenCalled();
+        await store.updateSettings({ showCaptions: true });
+        expect(persistedPlayers()).toEqual([VideoPlayer.EmbeddedMpv]);
+    });
+
+    it('preserves a saved player when the desktop bridge is absent', async () => {
+        testWindow.electron = undefined;
+        const store = injector.get(SettingsStore);
+        await store.loadSettings();
+        await jest.advanceTimersByTimeAsync(0);
+        expect(store.player()).toBe(VideoPlayer.EmbeddedMpv);
+        expect(storage.set).not.toHaveBeenCalled();
     });
 
     it('keeps the saved player when Embedded MPV is supported', async () => {
@@ -115,7 +122,7 @@ describe('SettingsStore saved Embedded MPV selection', () => {
         expect(getEmbeddedMpvSupport).toHaveBeenCalledTimes(1);
     });
 
-    it('follows an inconclusive answer and falls back once mpv is finally missing', async () => {
+    it('preserves the preference once an inconclusive probe finally reports mpv missing', async () => {
         getEmbeddedMpvSupport
             .mockResolvedValueOnce(INCONCLUSIVE)
             .mockResolvedValue(MPV_MISSING);
@@ -126,8 +133,8 @@ describe('SettingsStore saved Embedded MPV selection', () => {
         // The login shell answered: mpv really is not installed.
         await jest.advanceTimersByTimeAsync(EMBEDDED_MPV_SUPPORT_RECHECK_MS);
 
-        expect(store.player()).toBe(VideoPlayer.VideoJs);
-        expect(persistedPlayers()).toEqual([VideoPlayer.VideoJs]);
+        expect(store.player()).toBe(VideoPlayer.EmbeddedMpv);
+        expect(storage.set).not.toHaveBeenCalled();
     });
 
     it('follows an inconclusive answer and keeps the player once mpv is found', async () => {
@@ -179,15 +186,15 @@ describe('SettingsStore saved Embedded MPV selection', () => {
         expect(persistedPlayers()).toEqual([VideoPlayer.VLC]);
     });
 
-    it('falls back to the default player when the support check fails', async () => {
+    it('preserves the saved preference when the support check fails', async () => {
         const warn = jest.spyOn(console, 'warn').mockImplementation();
         getEmbeddedMpvSupport.mockRejectedValue(new Error('bridge failed'));
 
         try {
             const store = await start();
 
-            expect(store.player()).toBe(VideoPlayer.VideoJs);
-            expect(persistedPlayers()).toEqual([VideoPlayer.VideoJs]);
+            expect(store.player()).toBe(VideoPlayer.EmbeddedMpv);
+            expect(storage.set).not.toHaveBeenCalled();
         } finally {
             warn.mockRestore();
         }

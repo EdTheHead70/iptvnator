@@ -98,7 +98,7 @@ describe('web backend app', () => {
         const httpClient = new StubHttpClient();
         let idCounter = 0;
         httpClient.queueResponse(`#EXTM3U
-#EXTINF:-1 tvg-id="news" group-title="News",News Channel
+#EXTINF:-1 tvg-id="news" tvg-name="  News Channel  " group-title="News",  News Channel${'  '}
 https://stream.example/news.m3u8`);
 
         await withServer(
@@ -142,6 +142,7 @@ https://stream.example/news.m3u8`);
                 expect(body.playlist.items[0]).toMatchObject({
                     id: 'fixed-id-2',
                     name: 'News Channel',
+                    tvg: { id: 'news', name: 'News Channel' },
                     url: 'https://stream.example/news.m3u8',
                 });
                 expect(httpClient.requests).toEqual([

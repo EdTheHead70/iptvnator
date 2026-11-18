@@ -13,13 +13,15 @@
 
 import axios, { AxiosRequestConfig } from 'axios';
 import { ipcMain } from 'electron';
-import { XTREAM_CLIENT_USER_AGENT } from '@iptvnator/shared/interfaces';
+import {
+    XTREAM_CLIENT_USER_AGENT,
+    StreamProbeRequestOptions,
+    normalizeStreamTestingSettings,
+} from '@iptvnator/shared/interfaces';
 import { UnsafeUrlError } from './url-safety';
 import { requestWithValidatedRedirects } from '../util/validated-axios';
 
-const PROBE_TIMEOUT_MS = 10000;
-
-export interface StreamProbePayload {
+export interface StreamProbePayload extends StreamProbeRequestOptions {
     url: string;
     method?: 'GET' | 'HEAD';
     /**
@@ -53,7 +55,14 @@ export interface StreamProbeResponse {
 export async function runStreamProbe(
     payload: StreamProbePayload
 ): Promise<StreamProbeResponse> {
-    const method = payload.method ?? 'HEAD';
+    const method = payload.method === 'GET' ? 'GET' : 'HEAD';
+    const settings = normalizeStreamTestingSettings({
+        timeoutSeconds:
+            typeof payload.timeoutMs === 'number'
+                ? payload.timeoutMs / 1000
+                : undefined,
+        rangeBytes: payload.rangeBytes,
+    });
     const config: AxiosRequestConfig = {
         method,
         url: payload.url,
@@ -69,9 +78,11 @@ export async function runStreamProbe(
                 ? { Origin: payload.origin.trim() }
                 : {}),
             // Some servers reject a bare HEAD but answer a tiny ranged GET.
-            ...(method === 'GET' ? { Range: 'bytes=0-4095' } : {}),
+            ...(method === 'GET'
+                ? { Range: `bytes=0-${settings.rangeBytes - 1}` }
+                : {}),
         },
-        timeout: PROBE_TIMEOUT_MS,
+        timeout: settings.timeoutSeconds * 1000,
         responseType: method === 'GET' ? 'stream' : undefined,
         validateStatus: () => true,
     };

@@ -1,0 +1,68 @@
+<app-dialog-shell
+    icon="network_check"
+    [heading]="'CHANNELS.TEST_GROUP' | translate"
+    bodyLayout="column"
+>
+    <div class="group-test">
+        <strong class="group-test__name">{{
+            data.groupName || ('CHANNELS.UNGROUPED' | translate)
+        }}</strong>
+        <p>{{ 'CHANNELS.GROUP_TEST_DESCRIPTION' | translate }}</p>
+        <div class="group-test__summary" aria-live="polite">
+            <strong>{{
+                'CHANNELS.GROUP_TEST_PROGRESS'
+                    | translate: { checked: checked(), total: rows.length }
+            }}</strong>
+            <span
+                >{{ 'PORTALS.MULTI_SOURCE.PROBE_OK' | translate }}:
+                {{ counts().ok }}</span
+            >
+            <span
+                >{{ 'PORTALS.MULTI_SOURCE.PROBE_FAIL' | translate }}:
+                {{ counts().fail }}</span
+            >
+            <span
+                >{{ 'CHANNELS.GROUP_TEST_UNKNOWN' | translate }}:
+                {{ counts().unknown }}</span
+            >
+        </div>
+        <cdk-virtual-scroll-viewport
+            [itemSize]="52"
+            class="group-test__list"
+            role="list"
+            [attr.aria-label]="data.groupName"
+        >
+            <div
+                *cdkVirtualFor="let row of rows"
+                class="group-test__row"
+                role="listitem"
+                data-test-id="group-test-result"
+            >
+                <span
+                    class="group-test__channel"
+                    [matTooltip]="row.channel.name"
+                    >{{ row.channel.name }}</span
+                >
+                <span
+                    class="group-test__status"
+                    [attr.data-status]="row.result().status"
+                >
+                    {{ statusKey(row.result()) | translate }}
+                    @if (row.result().httpStatus; as status) {
+                        <small>HTTP {{ status }}</small>
+                    }
+                </span>
+            </div>
+        </cdk-virtual-scroll-viewport>
+    </div>
+    <div appDialogFooter>
+        <button mat-button (click)="close()">{{ 'CLOSE' | translate }}</button>
+        <button
+            mat-flat-button
+            (click)="stop()"
+            [disabled]="!running() || stopped()"
+        >
+            {{ 'CHANNELS.GROUP_TEST_STOP' | translate }}
+        </button>
+    </div>
+</app-dialog-shell>

@@ -137,3 +137,5 @@ export type {
     ContentCertification,
     AgeRatingDisplay,
 } from './lib/content-certification';
+
+export * from './lib/stream-testing-settings';

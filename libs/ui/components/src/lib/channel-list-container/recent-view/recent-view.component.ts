@@ -24,7 +24,11 @@ import {
 import { ChannelContextMenuComponent } from '../channel-context-menu/channel-context-menu.component';
 import { EpgMappingDialogComponent } from '../epg-mapping-dialog/epg-mapping-dialog.component';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
-import { resolveChannelLogo } from '../channel-logo-fallback.util';
+import {
+    resolveChannelLogo,
+    resolvePlaylistLogo,
+} from '../channel-logo-fallback.util';
+import { isSameChannelEntry } from '@iptvnator/shared/m3u-utils';
 import {
     calculateEpgProgress,
     resolveChannelEpgProgram,
@@ -68,10 +72,17 @@ export class RecentViewComponent {
     readonly searchTerm = input('');
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
     readonly channelIconMap = input.required<Map<string, string>>();
+    /** Settings → EPG: show the EPG icon instead of the playlist logo. */
+    readonly preferEpgIcons = input(false);
     readonly progressTick = input.required<number>();
     readonly shouldShowEpg = input.required<boolean>();
     readonly openOnDoubleClick = input(false);
-    readonly activeChannelUrl = input<string | undefined>();
+    readonly activeChannel = input<Channel | null | undefined>();
+
+    isChannelActive(channel: Channel): boolean {
+        const active = this.activeChannel();
+        return !!active && isSameChannelEntry(channel, active);
+    }
 
     readonly channelSelected = output<Channel>();
     readonly channelPlaybackRequested = output<Channel>();
@@ -113,7 +124,12 @@ export class RecentViewComponent {
                 channel,
                 viewedAt,
                 epgProgram,
-                logo: resolveChannelLogo(channel, iconMap),
+                logo: resolveChannelLogo(
+                    channel,
+                    iconMap,
+                    this.preferEpgIcons()
+                ),
+                fallbackLogo: resolvePlaylistLogo(channel),
                 progressPercentage: calculateEpgProgress(
                     epgProgram,
                     epgClockMs

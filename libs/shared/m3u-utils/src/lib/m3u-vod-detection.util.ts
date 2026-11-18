@@ -1,3 +1,4 @@
+import { getM3uContentType } from './m3u-content-type.util';
 import {
     Channel,
     SEASON_WORD_ALTERNATIVES,
@@ -106,12 +107,15 @@ function pathSegmentsOf(url: string): string[] {
 
 /** Playback evidence only: independent of titles and TMDB preferences. */
 export function isLikelyM3uVod(
-    channel: Pick<Channel, 'url' | 'radio'> | null | undefined
+    channel: Pick<Channel, 'url' | 'radio' | 'type' | 'raw'> | null | undefined
 ): boolean {
     const url = channel?.url;
-    if (!url || channel.radio === 'true' || isDashStreamUrl(url)) {
+    if (!url || channel.radio === 'true') {
         return false;
     }
+
+    if (getM3uContentType(channel) !== 'live') return true;
+    if (isDashStreamUrl(url)) return false;
 
     return (
         VOD_CONTAINER_EXTENSIONS.has(getPlaybackMediaExtensionFromUrl(url)) ||
@@ -125,12 +129,27 @@ export function isLikelyM3uVod(
 
 /** Movie-only metadata gate; episodes still receive VOD playback controls. */
 export function isLikelyM3uMovie(
-    channel: Pick<Channel, 'url' | 'name' | 'radio'> | null | undefined
+    channel:
+        | Pick<Channel, 'url' | 'name' | 'radio' | 'type' | 'raw'>
+        | null
+        | undefined
 ): boolean {
     return (
         !!channel &&
         isLikelyM3uVod(channel) &&
+        getM3uContentType(channel) !== 'series' &&
         !hasEpisodeMarker(channel.name) &&
         !pathSegmentsOf(channel.url).includes(SERIES_PATH_SEGMENT)
+    );
+}
+
+/** Typed VOD always browses first; the legacy movie heuristic remains optional. */
+export function shouldBrowseM3uVod(
+    channel: Channel,
+    recognizeMovies = true
+): boolean {
+    return (
+        getM3uContentType(channel) !== 'live' ||
+        (recognizeMovies && isLikelyM3uMovie(channel))
     );
 }

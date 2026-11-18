@@ -2,6 +2,8 @@ import {
     DEFAULT_DASHBOARD_RAILS_SETTINGS,
     DEFAULT_PARENTAL_LOCK_RELOCK_MINUTES,
     DEFAULT_TMDB_SETTINGS,
+    DEFAULT_STREAM_TESTING_SETTINGS,
+    normalizeStreamTestingSettings,
     Language,
     normalizeAppLanguage,
     normalizeAppUpdateChannel,
@@ -23,6 +25,7 @@ import {
 
 /** Defaults and boot-time helpers of `SettingsStore`, split out for size. */
 export const DEFAULT_SETTINGS = {
+    streamTesting: { ...DEFAULT_STREAM_TESTING_SETTINGS },
     player: VideoPlayer.VideoJs,
     webPlayerSharedControls: true,
     playerAmbientMode: false,
@@ -43,6 +46,7 @@ export const DEFAULT_SETTINGS = {
     updateChannel: 'stable',
     showExternalPlaybackBar: true,
     stripCountryPrefix: false,
+    hideDuplicateChannels: true,
     theme: Theme.SystemTheme,
     themeAccent: null,
     systemLightTheme: Theme.LightTheme,
@@ -67,6 +71,7 @@ export const DEFAULT_SETTINGS = {
     showCoverTitles: true,
     epgViewMode: 'timeline',
     epgOffsetMinutes: 0,
+    preferEpgIcons: false,
     dashboardRails: DEFAULT_DASHBOARD_RAILS_SETTINGS,
     preferUploadedEpgOverXtream: false,
     trustedPrivateNetworkEpgUrls: [],
@@ -111,6 +116,13 @@ export function normalizeSettingsPatch(
 ): Partial<Settings> {
     return {
         ...settings,
+        ...(settings.streamTesting !== undefined
+            ? {
+                  streamTesting: normalizeStreamTestingSettings(
+                      settings.streamTesting
+                  ),
+              }
+            : {}),
         ...('theme' in settings
             ? { theme: normalizeTheme(settings.theme) }
             : {}),

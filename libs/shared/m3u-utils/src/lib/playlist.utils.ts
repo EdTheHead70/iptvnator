@@ -6,6 +6,8 @@ import {
     ParsedPlaylistItem,
     Playlist,
 } from '@iptvnator/shared/interfaces';
+import { trimM3uChannelNames } from './m3u-channel-names.util';
+import { readM3uTypeFromRaw } from './m3u-content-type.util';
 import { extractDrmFromRaw } from './kodiprop.utils';
 
 /**
@@ -374,9 +376,11 @@ export const createPlaylistObject = (
             ...playlist,
             items: playlist.items.map((item: ParsedPlaylistItem) => {
                 const drm = extractDrmFromRaw(item.raw);
+                const type = item.type ?? readM3uTypeFromRaw(item.raw);
                 return {
-                    ...item,
+                    ...trimM3uChannelNames(item),
                     id: createRandomId(),
+                    ...(type !== undefined ? { type } : {}),
                     ...(drm ? { drm } : {}),
                 };
             }),

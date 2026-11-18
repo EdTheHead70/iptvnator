@@ -22,6 +22,15 @@ the active cache and removes deleted metadata without retaining another parsed
 payload. Shared hydration replaces the active channels while preserving local
 favorites and EPG preferences, and clears any previously retained entity payload.
 
+## Imported channel names
+
+M3U import and refresh trim leading and trailing whitespace from channel
+display names and `tvg-name` using the shared `trimM3uChannelNames` helper.
+File, text, Electron URL/refresh, and browser-backend URL imports use the same
+normalization. Inner spaces, EPG IDs, group titles, URLs, and raw M3U blocks
+remain unchanged. Existing saved channels are normalized on their next refresh
+or reimport; loading a playlist does not rewrite it.
+
 ## Adding a URL source
 
 The Add playlist dialog acquires a definition through
@@ -717,7 +726,7 @@ channel-list-container/
 
 ### Loading States
 
-- `M3uWorkspaceRouteSession` owns route-driven channel loading for the player/sidebar routes: `all` and `groups`.
+- `M3uWorkspaceRouteSession` owns route-driven channel loading for the player/sidebar routes: `all`, `groups`, `live`, `series` and `vod`.
 - The route session sets `channelsLoading` before `getPlaylist()` resolves and clears it when `ChannelActions.setChannels` lands.
 - The route session dispatches reducer-only `FavoritesActions.hydrateFavorites`
   after that persisted read. Hydration must not use the persistence-bearing
@@ -736,7 +745,48 @@ channel-list-container/
     - empty source: no channels in the playlist after loading completes
     - empty search: no matches within an already loaded playlist
 
+### M3U Content Types
+
+- The standalone `#EXTINF` attribute `type="series"` identifies a series entry
+  and `type="movie"` identifies a movie. Missing or unrecognized types belong
+  to Live TV. Group titles and URL extensions do not determine these sections.
+- Shared playlist normalization preserves `type` from the raw entry on import
+  and refresh. Existing saved entries resolve it from their preserved raw block,
+  so no database migration or re-import is needed.
+- The M3U rail adds `/live`, `/series` and `/vod` sections using the grouped
+  sidebar filtered by type. All Channels and Groups retain the entire playlist.
+  Search, group visibility, parental locks and group sorting still apply.
+- Explicit movie/series entries use VOD playback controls even for extensionless
+  URLs; explicit series entries never enter movie metadata recognition. Untyped
+  entries retain existing playback URL heuristics for compatibility.
+
+### Group Reachability Checks
+
+- Group rows and channel names expose their complete labels on hover.
+- The groups context menu offers an explicit desktop-only reachability test
+  alongside the existing parental lock action. It checks every channel in the
+  selected group's current content-type section, independently of text search.
+- Settings → Playback → Stream testing configures new group tests: concurrency
+  (1–8), request timeout (1–60 seconds), HEAD or GET, the HEAD-to-GET fallback,
+  requested GET range (1 KiB–1 MiB) and cache duration (0–3600 seconds; 0 disables
+  caching). Defaults remain two concurrent checks, 10 seconds, HEAD with fallback,
+  4 KiB and 30 seconds. A running dialog snapshots its original configuration.
+- The results dialog uses `StreamProbeService`, with channel headers taking
+  precedence over playlist headers. Per-request timeout and range cross the
+  Electron bridge and are normalized again in the main process. Existing callers
+  that omit options retain their defaults; result classifications stay fixed.
+  A successful response proves
+  reachability, not codec support or successful playback. Timeouts and blocked
+  requests remain unverified rather than unavailable.
+- Stop and closing the dialog prevent additional checks. Already-started
+  bounded requests may finish; closing discards their UI updates. Results are
+  temporary and never change playlists, selection, favorites or playback.
+
 ### Group Visibility Management
+
+- The groups rail sort menu preserves the default numeric-first order and offers
+  natural name sorting A–Z and Z–A. Its preference uses `m3u-groups-sort-mode`
+  independently of channel sorting; sorting preserves selection and source data.
 
 - `GroupsViewComponent` owns the M3U-only "Manage groups" action and dialog in
   `libs/ui/components/src/lib/channel-list-container/groups-view/`.
@@ -814,7 +864,7 @@ EPG lookup keys use the same precedence in both program and icon paths:
 2. `tvg-name`
 3. channel name
 
-All four collection tabs (all-channels, groups, favorites, recent) share a single
+All collection views (all-channels, groups, content types, favorites, recent) share a single
 EPG-enrichment implementation in `channel-list-container/epg-enrichment.util.ts`,
 fed the same `channelEpgMap`/`channelIconMap` from the container — there is no
 per-tab EPG logic:
@@ -1188,6 +1238,9 @@ These URLs are playlist-scoped by default:
   per-channel TTL cache and order-insensitive in-flight batch deduplication
   before reaching IPC; missing exact channel-id matches are resolved with batched
   id/display-name candidate queries rather than a per-channel fallback loop.
+  Current-program queries also chunk channel IDs into batches of 500, including
+  source-scoped, legacy and resolved-candidate fallbacks, to stay below SQLite
+  variable limits for large playlists.
   Those candidate queries match the **raw key case-sensitively** as well as via
   `LOWER()`: SQLite's `LOWER()`/`COLLATE NOCASE` only fold ASCII, so for non-ASCII
   names (Cyrillic, Greek, …) a `LOWER()`-only match would miss channels whose
@@ -1866,14 +1919,11 @@ groups, Xtream-derived exports). A recognized movie swaps the player + EPG
 zone for the same two-state VOD detail shell the portals use, fed by TMDB
 metadata. Works in both Electron and the PWA.
 
-**Gate** (`VideoPlayerComponent.showMovieDetail`): the branch activates only
-when ALL hold — the URL-shape heuristic recognizes the channel, TMDB
-enrichment is enabled (`TmdbEnrichmentService.isEnabled()`), and
-`Settings.m3uVodDetails` is not `false` (default on; the checkbox lives in
-Settings → Metadata (TMDB) under the master toggle). The decision is
-**synchronous** — layout is chosen at activation; the async TMDB lookup only
-patches metadata into an already-mounted view, so a missed match never causes
-a layout jump.
+**Gate** (`VideoPlayerComponent.showMovieDetail`): explicitly typed movies and
+series always open information. Untyped entries recognized by the movie URL
+heuristic do so when `Settings.m3uVodDetails` is not `false` (default on).
+TMDB is optional: disabled metadata or an unmatched title keeps the playlist's
+name and artwork. The decision is synchronous; enrichment only patches metadata.
 
 **Detection** (`isLikelyM3uMovie` in
 `libs/shared/m3u-utils/src/lib/m3u-vod-detection.util.ts`): a movie-file
@@ -1888,11 +1938,11 @@ Known accepted cost: "Star Wars: Episode 1" is skipped.
 **Flow** (`m3u-vod-detail/` in `libs/playlist/m3u/feature-player`):
 
 - `M3uVodDetailComponent` hosts `PortalDetailShellComponent` +
-  `PortalInlinePlayerComponent`. **Watch-first**: clicking a channel keeps
-  M3U zapping semantics — playback starts immediately, the About block
-  renders below where the EPG zone would be; Escape/close reveals the Browse
-  hero, Play re-enters watch. The hero back arrow is hidden (the channel
-  sidebar next to the detail IS the navigation).
+  `PortalInlinePlayerComponent`. **Browse-first**: selecting a movie or series
+  shows information without mounting a player. Play starts that entry, and
+  Escape/close returns to information. Selecting another entry resets playback
+  intent; metadata updates never start playback. The hero back arrow is hidden
+  because the adjacent sidebar provides navigation.
 - The parent passes its already-built `embeddedPlayback()`
   (`ResolvedPortalPlayback` with headers/EXTVLCOPT resolved) plus its shared
   persisted `volume()`; the host forwards the same payload, whose `isLive`
@@ -1914,22 +1964,19 @@ Known accepted cost: "Star Wars: Episode 1" is skipped.
 against the real composition with a routed TMDB mock — recognition, async
 metadata, the live-channel fallback, and the volume the remount must keep.
 
-- `M3uVodMetadataService` (component-provided) calls
-  `TmdbEnrichmentService.enrichMovie({ title: channel.name, year:
-releaseTagYear(channel.name) })` — the resolver already normalizes titles
-  and caches verdicts; the service only adds the release-year hint and a
-  staleness guard keyed on `channel.id` so zapping mid-request drops the
-  stale resolution.
-- No TMDB match keeps the thin provider presentation (entry name + logo) in
-  the detail layout rather than jumping back to the EPG view.
-- External MPV/VLC users keep Browse: the m3u-state effects launch the
-  external player on activation exactly as before, and
-  `inlinePlayerAvailable=false` means the host never mounts an inline player.
+- `M3uVodMetadataService` calls `enrichMovie` for movies and `enrichTv` for
+  typed series. Common `S01E02`/`1x02` suffixes are removed for the parent-series
+  title lookup. TV name, first-air date, episode runtime and whole-series cast
+  populate the shared detail presentation. Existing title normalization, release
+  year hints and cache behavior apply; stale responses cannot replace another
+  entry's information.
+- No TMDB match keeps the entry name and logo in the detail layout.
+- MPV/VLC launch only after an explicit Play request for detail entries; a
+  selection alone does not launch them. Live-channel behavior is unchanged.
 
-**Out of scope (v1)**: series episode metadata (movie detection skips them;
-episode playback still receives VOD controls when its URL qualifies), playback
-position persistence for M3U movies, clickable cast chips (no
-`actor/:personId` route in the M3U tree), and downloads.
+**Out of scope:** browsing a reconstructed season/episode catalog, playback
+position persistence for M3U VOD, clickable cast chips (no `actor/:personId`
+route in the M3U tree), and downloads.
 
 ## Interfaces
 

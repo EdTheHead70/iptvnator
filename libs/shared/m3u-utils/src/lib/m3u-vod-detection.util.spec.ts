@@ -11,6 +11,15 @@ const movie = (url: string, name = 'Some Movie', radio = '') => ({
 });
 
 describe('isLikelyM3uVod', () => {
+    it('uses explicit M3U type for extensionless movie and series streams', () => {
+        const channel = movie('http://host/stream');
+        expect(isLikelyM3uVod({ ...channel, type: 'movie' })).toBe(true);
+        expect(isLikelyM3uMovie({ ...channel, type: 'movie' })).toBe(true);
+        expect(
+            isLikelyM3uVod({ ...channel, raw: '#EXTINF:-1 type="series",Show' })
+        ).toBe(true);
+        expect(isLikelyM3uMovie({ ...channel, type: 'series' })).toBe(false);
+    });
     it.each([
         'http://host/movie.mp4',
         'http://host/episode.MKV?token=test',

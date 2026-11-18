@@ -18,6 +18,15 @@ jest.mock('axios', () => ({
     default: axiosMock,
 }));
 
+jest.mock('node:dns/promises', () => ({
+    lookup: jest.fn(async (host: string) => [
+        {
+            address: host === 'localhost' ? '127.0.0.1' : '93.184.216.34',
+            family: 4,
+        },
+    ]),
+}));
+
 describe('stream probe', () => {
     beforeEach(async () => {
         jest.resetModules();
@@ -33,6 +42,43 @@ describe('stream probe', () => {
         expect(registeredHandlers.get('STREAM_PROBE_URL')).toBeDefined();
         // The catchup variant probe still calls the old channel.
         expect(registeredHandlers.get('XTREAM_PROBE_URL')).toBeDefined();
+    });
+
+    it('uses configured timeouts and GET ranges and bounds untrusted payload values', async () => {
+        const handler = registeredHandlers.get('STREAM_PROBE_URL');
+        axiosMock.mockImplementation((config: { url?: string }) =>
+            Promise.resolve({ status: 200, headers: {}, config })
+        );
+        await handler?.(
+            {},
+            {
+                url: 'http://example.com/movie',
+                method: 'GET',
+                timeoutMs: 4000,
+                rangeBytes: 16384,
+            }
+        );
+        expect(axiosMock.mock.calls[0][0]).toEqual(
+            expect.objectContaining({
+                timeout: 4000,
+                headers: expect.objectContaining({ Range: 'bytes=0-16383' }),
+            })
+        );
+        await handler?.(
+            {},
+            {
+                url: 'http://example.com/movie',
+                method: 'GET',
+                timeoutMs: 999999,
+                rangeBytes: -1,
+            }
+        );
+        expect(axiosMock.mock.calls[1][0]).toEqual(
+            expect.objectContaining({
+                timeout: 60000,
+                headers: expect.objectContaining({ Range: 'bytes=0-1023' }),
+            })
+        );
     });
 
     it('defaults to HEAD and reports latency', async () => {
