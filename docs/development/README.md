@@ -5,7 +5,7 @@
 Requirements:
 
 - Node.js 26.13.1 (see `.nvmrc`); Node 22.23.4+ within 22.x and Node 24.22.1+ within 24.x are also supported
-- pnpm 12.18.0 (via Corepack)
+- pnpm 12.21.0 (install globally with npm; Node 26 no longer bundles Corepack)
 
 The repository's `.nvmrc` pins the Node.js version used by CI. With nvm,
 run `nvm install` and `nvm use` from the repository root to use the same version

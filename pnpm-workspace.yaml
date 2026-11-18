@@ -54,7 +54,7 @@ overrides:
 
 patchedDependencies:
     'nx-electron@22.0.0': 'patches/nx-electron@22.0.0.patch'
-    'app-builder-lib@26.15.7': 'patches/app-builder-lib@26.15.7.patch'
+    'app-builder-lib@26.18.0': 'patches/app-builder-lib@26.18.0.patch'
     'mpegts.js@1.8.2': 'patches/mpegts.js@1.8.2.patch'
     'vite@8.3.8': 'patches/vite@8.3.8.patch'
     '@angular/service-worker@22.2.6': 'patches/@angular__service-worker@22.2.6.patch'

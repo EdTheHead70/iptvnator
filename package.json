@@ -140,7 +140,7 @@
         "build": "nx build electron-backend"
     },
     "private": true,
-    "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3",
+    "packageManager": "pnpm@12.21.0",
     "dependencies": {
         "@angular/animations": "22.2.6",
         "@angular/cdk": "22.2.7",
@@ -264,7 +264,7 @@
         "cors": "2.8.6",
         "drizzle-kit": "0.31.11",
         "electron": "^45.3.4",
-        "electron-builder": "^26.15.7",
+        "electron-builder": "^26.18.0",
         "electron-playwright-helpers": "1.8.2",
         "esbuild": "0.28.2",
         "eslint": "^9.8.0",
