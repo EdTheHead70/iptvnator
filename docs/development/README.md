@@ -4,12 +4,13 @@
 
 Requirements:
 
-- Node.js 24.22.1 (see `.nvmrc`); patched Node 22.23.4 or newer within 22.x is also supported
+- Node.js 24.22.1 (see `.nvmrc`); Node 22.23.4+ within 22.x and Node 26.13.0+ within 26.x are also supported
 - pnpm 10.33.0 (via Corepack)
 
 The repository's `.nvmrc` pins the Node.js version used by CI. With nvm,
 run `nvm install` and `nvm use` from the repository root to use the same version
-for local development.
+for local development. Node 26 is checked separately in CI; you can keep an
+already installed supported Node 26 version instead of switching with nvm.
 
 1. Clone this repository and install project dependencies:
 

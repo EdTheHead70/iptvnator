@@ -1,4 +1,4 @@
-import { FormArray, FormBuilder } from '@angular/forms';
+import { FormArray, FormBuilder, AbstractControl } from '@angular/forms';
 import { Settings, VideoPlayer } from '@iptvnator/shared/interfaces';
 import {
     applyEpgUrlsToFormArray,
@@ -364,7 +364,9 @@ describe('stream testing settings form', () => {
         ['timeoutSeconds', 1.5],
     ])('rejects invalid %s value %s', (field, value) => {
         const form = createSettingsForm(new FormBuilder(), true);
-        form.get(`streamTesting.${field}`)?.setValue(value);
+        (
+            form.get(`streamTesting.${field}`) as AbstractControl | null
+        )?.setValue(value);
         expect(form.valid).toBe(false);
     });
 });

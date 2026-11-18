@@ -3,8 +3,8 @@ import {
     TmdbEnrichmentService,
     TmdbMovieDetails,
     TmdbTvDetails,
-    unifiedTvCast,
 } from '@iptvnator/services';
+import { unifiedTvCast } from '@iptvnator/shared/tmdb/credits';
 import { getM3uContentType } from '@iptvnator/shared/m3u-utils';
 import { Channel, releaseTagYear } from '@iptvnator/shared/interfaces';
 
