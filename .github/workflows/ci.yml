@@ -176,8 +176,8 @@ jobs:
                 needs.performance-journeys-scope.outputs.e2e == 'true' }}
         uses: ./.github/workflows/e2e-tests.yaml
 
-    node-26-compatibility:
-        name: Node 26 compatibility
+    node-24-compatibility:
+        name: Node 24 compatibility
         runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:
@@ -187,10 +187,10 @@ jobs:
             - name: Install pnpm
               uses: pnpm/action-setup@v6.1.0
 
-            - name: Setup Node.js 26
+            - name: Setup Node.js 24
               uses: actions/setup-node@v7
               with:
-                  node-version: '26.13.0'
+                  node-version: '24.22.1'
                   cache: 'pnpm'
 
             - name: Install dependencies

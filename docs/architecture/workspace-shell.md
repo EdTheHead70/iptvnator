@@ -1119,7 +1119,7 @@ Toolchain notes for the Electron 43 baseline:
    depend on the host compiler toolchain. The old `node-abi` override belonged
    to v12's removed `prebuild-install` path and is no longer required.
 2. Local development supports **Node 22.23.4–22.x, 24.22.1–24.x or 26.13.0–26.x**, declared in
-   `engines` as `^22.23.4 || ^24.22.1 || ^26.13.0`. Use `.nvmrc` (currently 24.22.1) for
+   `engines` as `^22.23.4 || ^24.22.1 || ^26.13.0`. Use `.nvmrc` (currently 26.13.0) for
    development and CI. These floors include the October 2026 Node security
    fixes. Angular 22 supports both LTS lines and requires
    TypeScript `>=6.0 <6.1`. `electron-builder` 26.15.7 also pulls `@electron/rebuild` 4,
