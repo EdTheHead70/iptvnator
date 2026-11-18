@@ -53,7 +53,8 @@
                     "keycode",
                     "safe-json-parse/tuple",
                     "@xmldom/xmldom",
-                    "url-toolkit"
+                    "url-toolkit",
+                    "shaka-player"
                 ]
             },
             "configurations": {
