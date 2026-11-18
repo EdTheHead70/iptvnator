@@ -1,7 +1,8 @@
 diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
+index a47acb481201378367b65c6fe8705656188068b0..7ab46f7f5b399bea31feb1365ebebc8fa2a11bf9 100644
 --- a/dist/node/chunks/node.js
 +++ b/dist/node/chunks/node.js
-@@ -27388,6 +27388,7 @@
+@@ -27356,6 +27356,7 @@ function buildImportAnalysisPlugin(config) {
  * import.meta.glob('./dir/**.png', { eager: true, import: 'default' })[`./dir/${name}.png`]
  * ```
  */
@@ -9,7 +10,7 @@ diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
  const assetImportMetaUrlRE = /\bnew\s+URL\s*\(\s*('[^']+'|"[^"]+"|`[^`]+`)\s*,\s*import\.meta\.url\s*(?:,\s*)?\)/dg;
  function assetImportMetaUrlPlugin(config) {
  	const { publicDir } = config;
-@@ -27408,7 +27409,7 @@
+@@ -27376,7 +27377,7 @@ function assetImportMetaUrlPlugin(config) {
  		transform: {
  			filter: {
  				id: { exclude: [exactRegex(preloadHelperId), exactRegex(CLIENT_ENTRY)] },
@@ -18,7 +19,7 @@ diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
  			},
  			async handler(code, id) {
  				let s;
-@@ -27656,7 +27657,7 @@
+@@ -27624,7 +27625,7 @@ function rolldownDepPlugin(environment, qualified, external) {
  			}
  		},
  		transform: {
@@ -27,7 +28,7 @@ diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
  			handler(code, id) {
  				let s;
  				const re = new RegExp(assetImportMetaUrlRE);
-@@ -34064,6 +34065,7 @@
+@@ -34010,6 +34011,7 @@ async function getWorkerType(raw, clean, i) {
  	if (workerOpts.type && (workerOpts.type === "module" || workerOpts.type === "classic")) return workerOpts.type;
  	return "classic";
  }
@@ -35,7 +36,7 @@ diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
  const workerImportMetaUrlRE = /\bnew\s+(?:Worker|SharedWorker)\s*\(\s*(new\s+URL\s*\(\s*('[^']+'|"[^"]+"|`[^`]+`)\s*,\s*import\.meta\.url\s*(?:,\s*)?\))/dg;
  function workerImportMetaUrlPlugin(config) {
  	let workerResolver;
-@@ -34081,7 +34083,7 @@
+@@ -34027,7 +34029,7 @@ function workerImportMetaUrlPlugin(config) {
  			return environment.config.consumer === "client";
  		},
  		transform: {
