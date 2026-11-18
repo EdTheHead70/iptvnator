@@ -99,8 +99,8 @@ test('Docker stages and CI select the repository Node version', () => {
         for (const [jobId, job] of Object.entries(workflow.jobs ?? {})) {
             for (const step of job.steps ?? []) {
                 if (!step.uses?.startsWith('actions/setup-node@')) continue;
-                if (name === 'ci.yml' && jobId === 'node-26-compatibility') {
-                    assert.equal(step.with?.['node-version'], '26.13.0');
+                if (name === 'ci.yml' && jobId === 'node-24-compatibility') {
+                    assert.equal(step.with?.['node-version'], '24.22.1');
                     assert.equal(step.with?.['node-version-file'], undefined);
                     assertPatchedNode(step.with['node-version']);
                     continue;

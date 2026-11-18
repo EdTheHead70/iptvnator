@@ -1,7 +1,7 @@
 # The Nx builds below emit platform-independent JS/static assets. During
 # multi-arch publish builds, keep that heavy build stage on the native builder
 # platform instead of running Node/Nx through QEMU for linux/arm64.
-ARG NODE_VERSION=24.22.1
+ARG NODE_VERSION=26.13.1
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS build
 
 RUN apk add --no-cache python3 make g++ git
