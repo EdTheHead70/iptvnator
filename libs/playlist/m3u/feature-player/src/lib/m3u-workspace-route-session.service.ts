@@ -23,7 +23,7 @@ import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import { PlaylistsService } from '@iptvnator/services';
 import { PlaylistMeta } from '@iptvnator/shared/interfaces';
 
-type M3uLoadedSection = 'all' | 'groups';
+type M3uLoadedSection = 'all' | 'groups' | 'live' | 'series' | 'vod';
 
 @Injectable()
 export class M3uWorkspaceRouteSession {
@@ -111,7 +111,7 @@ export class M3uWorkspaceRouteSession {
                 this.playlistsService.getPlaylist(playlistId)
             );
 
-            if (!this.isCurrentLoadRequest(requestId, playlistId, section)) {
+            if (!this.isCurrentLoadRequest(requestId, playlistId)) {
                 return;
             }
 
@@ -151,7 +151,7 @@ export class M3uWorkspaceRouteSession {
                 })
             );
         } catch {
-            if (!this.isCurrentLoadRequest(requestId, playlistId, section)) {
+            if (!this.isCurrentLoadRequest(requestId, playlistId)) {
                 return;
             }
 
@@ -208,18 +208,23 @@ export class M3uWorkspaceRouteSession {
     private isLoadedSection(
         section: string | null
     ): section is M3uLoadedSection {
-        return section === 'all' || section === 'groups';
+        return (
+            section === 'all' ||
+            section === 'groups' ||
+            section === 'live' ||
+            section === 'series' ||
+            section === 'vod'
+        );
     }
 
     private isCurrentLoadRequest(
         requestId: number,
-        playlistId: string,
-        section: M3uLoadedSection
+        playlistId: string
     ): boolean {
         return (
             requestId === this.loadRequestId &&
             this.currentPlaylistId === playlistId &&
-            this.currentSection === section
+            this.isLoadedSection(this.currentSection)
         );
     }
 }

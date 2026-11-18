@@ -93,6 +93,27 @@ describe('buildPortalRailLinks', () => {
                 exact: true,
                 section: 'groups',
             },
+            ...[
+                {
+                    section: 'live',
+                    icon: 'live_tv',
+                    tooltip: 'Live TV (this playlist)',
+                },
+                {
+                    section: 'series',
+                    icon: 'tv',
+                    tooltip: 'Series (this playlist)',
+                },
+                {
+                    section: 'vod',
+                    icon: 'movie',
+                    tooltip: 'Movies (this playlist)',
+                },
+            ].map((link) => ({
+                ...link,
+                path: ['/workspace', 'playlists', 'm3u-1', link.section],
+                exact: true,
+            })),
         ]);
         expect(links.secondary).toEqual([]);
     });

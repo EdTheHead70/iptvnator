@@ -115,6 +115,28 @@ describe('AllChannelsViewComponent', () => {
         expect(component.filteredChannels()).toEqual([primaryChannel]);
     });
 
+    it('highlights only the active playlist entry when rows share a stream URL', () => {
+        const first = createChannel(
+            'channel-2',
+            'News One Copy',
+            'https://example.com/shared.m3u8'
+        );
+        const second = createChannel(
+            'channel-3',
+            'News One Copy Two',
+            'https://example.com/shared.m3u8'
+        );
+        fixture.componentRef.setInput('channels', [first, second]);
+        fixture.componentRef.setInput('activeChannel', {
+            ...first,
+            epgParams: 'rewritten',
+        });
+        fixture.detectChanges();
+
+        expect(component.isChannelActive(first)).toBe(true);
+        expect(component.isChannelActive(second)).toBe(false);
+    });
+
     it('defaults to playlist order when no saved sort mode exists', () => {
         expect(component.allChannelsSortMode()).toBe('server');
         expect(component.allChannelsSortLabelKey()).toBe(

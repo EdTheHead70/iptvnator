@@ -176,6 +176,38 @@ jobs:
                 needs.performance-journeys-scope.outputs.e2e == 'true' }}
         uses: ./.github/workflows/e2e-tests.yaml
 
+    node-26-compatibility:
+        name: Node 26 compatibility
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v7
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v6.1.0
+
+            - name: Setup Node.js 26
+              uses: actions/setup-node@v7
+              with:
+                  node-version: '26.13.0'
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Discover workspace
+              run: pnpm nx show projects
+
+            - name: Type-check web and Electron
+              run: pnpm run typecheck:web && pnpm run typecheck:backend
+
+            - name: Build web application
+              run: pnpm nx build web
+
+            - name: Build Electron workers
+              run: pnpm nx run electron-backend:build-worker
+
     initial-bytes-ratchet:
         needs: preflight
         if: ${{ !cancelled() && needs.preflight.result == 'success' }}

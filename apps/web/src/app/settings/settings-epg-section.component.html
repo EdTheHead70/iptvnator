@@ -24,6 +24,22 @@
                     />
                 </div>
             </div>
+
+            <div class="setting-item" data-setting-id="prefer-epg-icons">
+                <div class="setting-item__meta">
+                    <h4 id="prefer-epg-icons-label">
+                        {{ 'SETTINGS.PREFER_EPG_ICONS_TITLE' | translate }}
+                    </h4>
+                    <p>{{ 'SETTINGS.PREFER_EPG_ICONS_HINT' | translate }}</p>
+                </div>
+                <div class="setting-item__control setting-item__toggle">
+                    <mat-slide-toggle
+                        formControlName="preferEpgIcons"
+                        aria-labelledby="prefer-epg-icons-label"
+                        data-test-id="toggle-prefer-epg-icons"
+                    ></mat-slide-toggle>
+                </div>
+            </div>
         </div>
     </section>
     @if (form().get('epgEnabled')?.value !== false) {

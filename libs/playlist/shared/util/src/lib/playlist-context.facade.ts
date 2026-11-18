@@ -66,7 +66,15 @@ const STALKER_SECTIONS = [
     'search',
     'downloads',
 ] as const;
-const M3U_SECTIONS = ['all', 'groups', 'favorites', 'recent'] as const;
+const M3U_SECTIONS = [
+    'all',
+    'groups',
+    'live',
+    'series',
+    'vod',
+    'favorites',
+    'recent',
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class PlaylistContextFacade {
@@ -418,7 +426,10 @@ export class PlaylistContextFacade {
             const parsedProviders = (parsed as Record<string, unknown>)[
                 'providers'
             ];
-            if (typeof parsedProviders === 'object' && parsedProviders !== null) {
+            if (
+                typeof parsedProviders === 'object' &&
+                parsedProviders !== null
+            ) {
                 const candidate = parsedProviders as Record<string, unknown>;
                 if (typeof candidate['playlists'] === 'string') {
                     providers.playlists = candidate['playlists'];

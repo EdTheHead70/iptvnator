@@ -272,6 +272,18 @@ describe('VideoPlayerComponent — recently viewed history', () => {
         );
     });
 
+    it('does not record browsing external-player VOD until Play is pressed', () => {
+        player.set(VideoPlayer.MPV);
+        select({ ...sampleChannel, type: 'series' });
+        expect(
+            playlistsServiceMock.addM3uRecentlyViewed
+        ).not.toHaveBeenCalled();
+        component.startDetailPlayback();
+        expect(playlistsServiceMock.addM3uRecentlyViewed).toHaveBeenCalledTimes(
+            1
+        );
+    });
+
     it('records on selection with an external player, which cannot confirm', () => {
         player.set(VideoPlayer.MPV);
         fixture.detectChanges();

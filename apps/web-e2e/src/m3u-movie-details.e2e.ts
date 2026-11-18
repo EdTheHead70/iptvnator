@@ -140,7 +140,9 @@ async function importPlaylist(
             .getByRole('button', { name: 'Add playlist', exact: true })
             .click(),
     ]);
-    await expect(page.getByText(`${count} channels`)).toBeVisible();
+    await expect(
+        page.getByText(`${count} ${count === 1 ? 'channel' : 'channels'}`)
+    ).toBeVisible();
 }
 
 const detail = (page: Page) => page.locator('app-m3u-vod-detail');
@@ -288,8 +290,12 @@ for (const [player, selector] of [
 
             await sidebarEntry(page, 'Dune (2021) 1080p').click();
             await expect(detail(page)).toHaveCount(
-                metadata === 'enabled' ? 1 : 0
+                metadata !== 'details-disabled' ? 1 : 0
             );
+            if (metadata !== 'details-disabled') {
+                await expect(view).toHaveCount(0);
+                await page.locator('[data-testid="m3u-vod-play"]').click();
+            }
             await expect(view.locator(selector)).toHaveCount(1);
             await seekUsingControls(page);
 
@@ -346,10 +352,11 @@ test('@web @m3u @tmdb recognized movies open the VOD detail view', async ({
         });
     });
 
-    // Watch-first: activating the entry plays immediately inside the detail
-    // shell, with no EPG zone in sight.
+    // Browsing shows information first, with no player or EPG zone.
     await sidebarEntry(page, 'Dune (2021) 1080p').click();
     await expect(detail(page)).toBeVisible();
+    await expect(inlineVideo(page)).toHaveCount(0);
+    await page.locator('[data-testid="m3u-vod-play"]').click();
     await expect(inlineVideo(page)).toBeVisible();
     await expect(page.locator('app-epg-timeline')).toHaveCount(0);
     // The engine is part of the application token, so the saved player must
@@ -398,6 +405,7 @@ test('@web @m3u @tmdb browse and watch keep the adjusted volume', async ({
     await page.evaluate(() => localStorage.setItem('volume', '0.5'));
 
     await sidebarEntry(page, 'Dune (2021) 1080p').click();
+    await page.locator('[data-testid="m3u-vod-play"]').click();
     await expect(inlineVideo(page)).toBeVisible();
     await expect
         .poll(() =>
@@ -533,3 +541,177 @@ for (const theme of ['light', 'dark']) {
         await expect(recent).toBeFocused();
     });
 }
+
+for (const theme of ['light', 'dark']) {
+    test(`@web @m3u type sections filter mixed groups and survive reload (${theme})`, async ({
+        page,
+    }, testInfo) => {
+        await importPlaylist(
+            page,
+            [
+                '#EXTM3U',
+                '#EXTINF:-1 group-title="Mixed",News Station',
+                `${FIXTURE_HOST}/live`,
+                '#EXTINF:-1 type="series" group-title="Mixed",Example Episode',
+                `${FIXTURE_HOST}/episode`,
+                '#EXTINF:-1 type="movie" group-title="Mixed",Example Film',
+                `${FIXTURE_HOST}/film`,
+            ].join('\n'),
+            3
+        );
+        await page.evaluate(
+            (dark) => document.body.classList.toggle('dark-theme', dark),
+            theme === 'dark'
+        );
+        for (const [section, name] of [
+            ['live', 'News Station'],
+            ['series', 'Example Episode'],
+            ['vod', 'Example Film'],
+        ]) {
+            await page.locator(`a[href$="/${section}"]`).first().click();
+            await expect(page).toHaveURL(new RegExp(`/${section}$`));
+            const groups = page.locator('app-groups-view');
+            await expect(groups).toBeVisible();
+            await expect(groups.locator('.channel-name')).toHaveText([
+                new RegExp(`${name}$`),
+            ]);
+        }
+        await page.mouse.move(1100, 650);
+        await page.screenshot({
+            path: testInfo.outputPath(`m3u-content-types-${theme}.png`),
+            fullPage: true,
+        });
+        await page.reload();
+        await expect(page.locator('app-groups-view .channel-name')).toHaveText([
+            /Example Film$/,
+        ]);
+        await page.locator('a[href$="/groups"]').first().click();
+        await expect(page.locator('app-groups-view .channel-name')).toHaveCount(
+            3
+        );
+    });
+}
+
+test('@web @m3u typed movies and series browse before Play without TMDB', async ({
+    page,
+}) => {
+    await serveSeekableClip(page);
+    await selectPlayer(page);
+    await importPlaylist(
+        page,
+        [
+            '#EXTM3U',
+            '#EXTINF:-1 type="movie" group-title="Mixed",Example Film',
+            `${FIXTURE_HOST}/film.webm`,
+            '#EXTINF:-1 type="series" group-title="Mixed",Example Show S01E02',
+            `${FIXTURE_HOST}/episode.webm`,
+        ].join('\n'),
+        2
+    );
+    const requests: string[] = [];
+    page.on('request', (request) => {
+        if (request.url().startsWith(FIXTURE_HOST))
+            requests.push(request.url());
+    });
+    await sidebarEntry(page, 'Example Film').click();
+    await expect(detail(page)).toBeVisible();
+    await expect(inlineVideo(page)).toHaveCount(0);
+    await expect(page.locator('[data-testid="m3u-vod-play"]')).toBeVisible();
+    expect(requests).toHaveLength(0);
+    await page.locator('[data-testid="m3u-vod-play"]').click();
+    await expect(inlineVideo(page)).toBeVisible();
+    await sidebarEntry(page, 'Example Show S01E02').click();
+    await expect(inlineVideo(page)).toHaveCount(0);
+    await expect(
+        detail(page).getByRole('heading', {
+            name: 'Example Show S01E02',
+            exact: true,
+        })
+    ).toBeVisible();
+    await expect(page.locator('[data-testid="m3u-vod-play"]')).toBeVisible();
+    expect(requests.some((url) => url.includes('episode.webm'))).toBe(false);
+    await page.locator('[data-testid="m3u-vod-play"]').click();
+    await expect(inlineVideo(page)).toBeVisible();
+});
+
+test('@web @m3u @tmdb series selection looks up information before playback', async ({
+    page,
+}) => {
+    await serveTmdb(page);
+    await page.route('https://api.themoviedb.org/**', async (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith('/search/tv')) {
+            expect(url.searchParams.get('query')).toBe('Example Show');
+            return route.fulfill({
+                json: {
+                    results: [
+                        {
+                            id: 751,
+                            name: 'Example Show',
+                            original_name: 'Example Show',
+                            first_air_date: '2020-01-01',
+                            vote_count: 1000,
+                            vote_average: 8,
+                        },
+                    ],
+                },
+            });
+        }
+        if (url.pathname.endsWith('/tv/751')) {
+            return route.fulfill({
+                json: {
+                    id: 751,
+                    name: 'Example Show',
+                    overview: 'The series description from TMDB.',
+                    first_air_date: '2020-01-01',
+                    episode_run_time: [42],
+                    genres: [{ id: 1, name: 'Drama' }],
+                },
+            });
+        }
+        return route.fallback();
+    });
+    await selectPlayer(page);
+    await enableTmdb(page);
+    await importPlaylist(
+        page,
+        [
+            '#EXTM3U',
+            '#EXTINF:-1 type="series",Example Show S01E02',
+            `${FIXTURE_HOST}/episode.webm`,
+        ].join('\n'),
+        1
+    );
+    await sidebarEntry(page, 'Example Show S01E02').click();
+    await expect(
+        detail(page).getByText('The series description from TMDB.').first()
+    ).toBeVisible();
+    await expect(inlineVideo(page)).toHaveCount(0);
+    await expect(page.locator('[data-testid="m3u-vod-play"]')).toBeVisible();
+});
+
+test('@web @m3u group reachability checks are desktop only', async ({
+    page,
+}) => {
+    await importPlaylist(
+        page,
+        [
+            '#EXTM3U',
+            '#EXTINF:-1 group-title="Example",One',
+            `${FIXTURE_HOST}/one`,
+            '#EXTINF:-1 group-title="Example",Two',
+            `${FIXTURE_HOST}/two`,
+        ].join('\n'),
+        2
+    );
+    await page.getByRole('link', { name: 'Groups', exact: true }).click();
+    const group = page.locator('.group-nav-item').first();
+    await group.hover();
+    await expect(
+        page.locator('.mat-mdc-tooltip-surface').filter({ hasText: 'Example' })
+    ).toHaveText('Example');
+    await group.click({ button: 'right' });
+    await expect(
+        page.getByRole('menuitem', { name: 'Test all channels in group' })
+    ).toBeDisabled();
+});

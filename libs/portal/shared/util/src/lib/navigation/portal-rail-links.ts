@@ -159,6 +159,27 @@ export function buildPortalRailLinks(
                 exact: true,
                 section: 'groups',
             },
+            {
+                icon: 'live_tv',
+                tooltip: 'Live TV (this playlist)',
+                path: [...root, 'live'],
+                exact: true,
+                section: 'live',
+            },
+            {
+                icon: 'tv',
+                tooltip: 'Series (this playlist)',
+                path: [...root, 'series'],
+                exact: true,
+                section: 'series',
+            },
+            {
+                icon: 'movie',
+                tooltip: 'Movies (this playlist)',
+                path: [...root, 'vod'],
+                exact: true,
+                section: 'vod',
+            },
         ];
 
         return {

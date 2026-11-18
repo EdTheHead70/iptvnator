@@ -96,9 +96,15 @@ test('Docker stages and CI select the repository Node version', () => {
     for (const name of readdirSync(`${root}.github/workflows`)) {
         if (!/\.ya?ml$/.test(name)) continue;
         const workflow = parse(read(`.github/workflows/${name}`));
-        for (const job of Object.values(workflow.jobs ?? {})) {
+        for (const [jobId, job] of Object.entries(workflow.jobs ?? {})) {
             for (const step of job.steps ?? []) {
                 if (!step.uses?.startsWith('actions/setup-node@')) continue;
+                if (name === 'ci.yml' && jobId === 'node-26-compatibility') {
+                    assert.equal(step.with?.['node-version'], '26.13.0');
+                    assert.equal(step.with?.['node-version-file'], undefined);
+                    assertPatchedNode(step.with['node-version']);
+                    continue;
+                }
                 assert.equal(step.with?.['node-version-file'], '.nvmrc', name);
                 assert.equal(step.with?.['node-version'], undefined, name);
             }

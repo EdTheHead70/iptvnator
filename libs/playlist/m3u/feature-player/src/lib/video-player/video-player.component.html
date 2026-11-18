@@ -20,7 +20,7 @@
     (resizeEnd)="onSidebarResizeEnd($event)"
     (resizeCancel)="onSidebarWidthChange($event)"
 >
-    @if (activeView() !== 'groups' && activeView() !== 'all') {
+    @if (!['groups', 'all', 'live', 'series', 'vod'].includes(activeView())) {
         <button
             mat-icon-button
             type="button"
@@ -86,7 +86,7 @@
                 [inlinePlayerAvailable]="shouldShowInlinePlayer(activeChannel)"
                 [volume]="volume()"
                 [playerOverride]="playerSettings().player ?? null"
-                (playbackStarted)="refreshVolumeFromBus()"
+                (playbackStarted)="startDetailPlayback()"
                 (externalFallbackRequested)="
                     handleExternalFallbackRequest($event)
                 "

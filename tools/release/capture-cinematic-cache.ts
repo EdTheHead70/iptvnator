@@ -9,8 +9,10 @@ import {
 
 export const SYNTHETIC_METADATA_KEY = 'iptvnator-synthetic-offline-fixture';
 
-// This tool owns wire fixtures, not application-library imports. The full
-// Electron capture verifies these versioned keys against the real resolver.
+// This tool owns wire fixtures, not application-library imports. The versions
+// follow libs/shared/tmdb/src/lib/tmdb-matcher.ts (search v5, details v2) and
+// tmdb-season-client.ts (season rows); the full Electron capture fails at the
+// network gate when they drift.
 type TmdbCacheEntry = Parameters<
     NonNullable<Window['electron']>['dbSetTmdbMetadata']
 >[0];

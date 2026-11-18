@@ -155,6 +155,7 @@
             ]
         ]
     },
+    "beforePack": "./tools/packaging/electron-before-pack.cjs",
     "afterPack": "./tools/packaging/electron-after-pack.cjs",
     "snap": {
         "base": "core22",

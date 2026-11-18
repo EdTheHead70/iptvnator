@@ -7,7 +7,7 @@
         (click)="closed.emit()"
         [attr.aria-label]="backLabel()"
         [matTooltip]="backLabel()"
-        matTooltipPosition="above"
+        [matTooltipDisabled]="true"
     >
         <mat-icon>arrow_back</mat-icon>
     </button>
@@ -24,11 +24,7 @@
             (scroll)="onRibbonScroll()"
             (wheel)="onRibbonWheel($event)"
         >
-            @for (
-                chip of panel().chips;
-                track chip.id;
-                let index = $index
-            ) {
+            @for (chip of panel().chips; track chip.id; let index = $index) {
                 <button
                     #chip
                     type="button"

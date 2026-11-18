@@ -272,6 +272,31 @@ describe('ChannelListItemComponent', () => {
         expect(fixture.nativeElement.querySelector('.channel-logo')).toBeNull();
     });
 
+    it('falls back to the playlist logo when the preferred logo fails to load', () => {
+        fixture.componentRef.setInput('name', 'News');
+        fixture.componentRef.setInput('logo', 'https://example.test/epg.png');
+        fixture.componentRef.setInput(
+            'logoFallback',
+            'https://example.test/m3u.png'
+        );
+        fixture.detectChanges();
+
+        const img = fixture.nativeElement.querySelector(
+            '.channel-logo'
+        ) as HTMLImageElement;
+        expect(img.getAttribute('src')).toBe('https://example.test/epg.png');
+
+        img.dispatchEvent(new Event('error'));
+        fixture.detectChanges();
+        expect(img.getAttribute('src')).toBe('https://example.test/m3u.png');
+
+        img.dispatchEvent(new Event('error'));
+        fixture.detectChanges();
+        expect(
+            fixture.nativeElement.querySelector('.channel-logo-fallback')
+        ).not.toBeNull();
+    });
+
     it('emits clicked on a single click by default', () => {
         const clicked = jest.fn();
         fixture.componentInstance.clicked.subscribe(clicked);

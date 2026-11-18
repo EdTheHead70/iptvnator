@@ -14,6 +14,7 @@ function createForm(offset = 0): FormGroup {
             Validators.min(-720),
             Validators.max(720),
         ]),
+        preferEpgIcons: new FormControl(false),
         preferUploadedEpgOverXtream: new FormControl(false),
     });
 }
@@ -132,6 +133,7 @@ describe('SettingsEpgSectionComponent offset stepper', () => {
             epgEnabled: new FormControl(true),
             epgViewMode: new FormControl('timeline'),
             epgOffsetMinutes: new FormControl<number>(0),
+            preferEpgIcons: new FormControl(false),
         });
         fixture.componentRef.setInput('form', form);
         // The settings form has no `epgUrl` array without XMLTV sources.

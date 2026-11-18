@@ -31,6 +31,58 @@ describe('StreamProbeService', () => {
         delete (window as unknown as { electron?: unknown }).electron;
     });
 
+    it('forwards custom timeout/range settings and can disable HEAD fallback and caching', async () => {
+        const bridge = ok(405);
+        const service = withBridge(bridge);
+        const options = {
+            timeoutSeconds: 4,
+            rangeBytes: 16384,
+            headFallback: false,
+            cacheSeconds: 0,
+        };
+        await service.probe('http://x/settings', 'HEAD', undefined, options);
+        expect(bridge).toHaveBeenCalledWith(
+            'http://x/settings',
+            'HEAD',
+            undefined,
+            { timeoutMs: 4000, rangeBytes: 16384 }
+        );
+        expect(bridge).toHaveBeenCalledTimes(1);
+        await service.probe('http://x/settings', 'HEAD', undefined, options);
+        expect(bridge).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not reuse cached results from a different probe size', async () => {
+        const bridge = ok(200);
+        const service = withBridge(bridge);
+        await service.probe('http://x/settings', 'GET', undefined, {
+            rangeBytes: 4096,
+        });
+        await service.probe('http://x/settings', 'GET', undefined, {
+            rangeBytes: 16384,
+        });
+        expect(bridge).toHaveBeenCalledTimes(2);
+    });
+
+    it('expires cached answers using the configured duration', async () => {
+        let now = 1000;
+        const clock = jest.spyOn(Date, 'now').mockImplementation(() => now);
+        try {
+            const bridge = ok(200);
+            const service = withBridge(bridge);
+            const options = { cacheSeconds: 2 };
+            await service.probe('http://x/cache', 'HEAD', undefined, options);
+            now += 1000;
+            await service.probe('http://x/cache', 'HEAD', undefined, options);
+            expect(bridge).toHaveBeenCalledTimes(1);
+            now += 1001;
+            await service.probe('http://x/cache', 'HEAD', undefined, options);
+            expect(bridge).toHaveBeenCalledTimes(2);
+        } finally {
+            clock.mockRestore();
+        }
+    });
+
     it('reports unknown, not fail, without a bridge', async () => {
         const service = withBridge(undefined);
 

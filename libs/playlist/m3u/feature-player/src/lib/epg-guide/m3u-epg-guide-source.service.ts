@@ -15,7 +15,7 @@ import {
     EpgGuideWindow,
 } from '@iptvnator/ui/epg';
 import { createM3uChannelPlaybackRequest } from '../video-player/m3u-channel-playback-actions';
-import { isSameChannelEntry } from './channel-entry-identity.util';
+import { isSameChannelEntry } from '@iptvnator/shared/m3u-utils';
 
 export interface M3uEpgGuideInputs {
     /** Guide-eligible channels (host excludes radio and recognised movies). */

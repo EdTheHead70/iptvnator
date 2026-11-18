@@ -188,19 +188,20 @@ describe('M3uVodDetailComponent', () => {
         expect(fixture.componentInstance.kindLabel()).toBe('Фильм');
     });
 
-    it('starts in watch state — activation means play in M3U', async () => {
+    it('opens information without mounting a player', async () => {
         await create({ channel: channel(), playback: playback() });
-
-        expect(fixture.componentInstance.playbackActive()).toBe(true);
+        expect(fixture.componentInstance.playbackActive()).toBe(false);
         expect(
             fixture.nativeElement.querySelector('app-portal-inline-player')
-        ).not.toBeNull();
+        ).toBeNull();
+        expect(fixture.componentInstance.canStartPlayback()).toBe(true);
     });
 
     it('plays with VOD semantics and the parent payload', async () => {
         const parentPlayback = playback();
         await create({ channel: channel(), playback: parentPlayback });
 
+        fixture.componentInstance.startPlayback();
         const inline = fixture.componentInstance.inlinePlayback();
         expect(inline).toBe(parentPlayback);
         expect(inline?.isLive).toBe(false);
@@ -215,6 +216,8 @@ describe('M3uVodDetailComponent', () => {
             volume: 0.35,
         });
 
+        fixture.componentInstance.startPlayback();
+        fixture.detectChanges();
         expect(inlinePlayerStub()?.volume()).toBe(0.35);
     });
 
@@ -223,6 +226,8 @@ describe('M3uVodDetailComponent', () => {
         fixture.componentRef.setInput('playerOverride', 'html5');
         fixture.detectChanges();
 
+        fixture.componentInstance.startPlayback();
+        fixture.detectChanges();
         expect(inlinePlayerStub()?.playerOverride()).toBe('html5');
     });
 
@@ -238,6 +243,7 @@ describe('M3uVodDetailComponent', () => {
         );
         await create({ channel: channel(), playback: playback() });
 
+        fixture.componentInstance.startPlayback();
         const before = fixture.componentInstance.inlinePlayback();
         resolveEnrichment({
             id: 42,
@@ -306,7 +312,7 @@ describe('M3uVodDetailComponent', () => {
         expect(component.title()).toBe('Dune (2021) 1080p');
         expect(component.posterUrl()).toBe('http://logo/dune.png');
         expect(component.backdropUrl()).toBeUndefined();
-        expect(component.playbackActive()).toBe(true);
+        expect(component.playbackActive()).toBe(false);
     });
 
     it('keys the hero by id and name, like the TMDB lookup', async () => {
@@ -331,6 +337,7 @@ describe('M3uVodDetailComponent', () => {
 
     it('restarts the payload identity when zapping to another movie', async () => {
         await create({ channel: channel(), playback: playback() });
+        fixture.componentInstance.startPlayback();
         const first = fixture.componentInstance.inlinePlayback();
 
         fixture.componentRef.setInput(
@@ -376,7 +383,7 @@ describe('M3uVodDetailComponent', () => {
         expect(fixture.componentInstance.playbackActive()).toBe(true);
     });
 
-    it('re-enters watch when zapping to the next movie after a close', async () => {
+    it('opens information again when selecting the next movie', async () => {
         await create({ channel: channel(), playback: playback() });
         fixture.componentInstance.closeInlinePlayback();
         fixture.detectChanges();
@@ -388,7 +395,7 @@ describe('M3uVodDetailComponent', () => {
         fixture.detectChanges();
         await flush();
 
-        expect(fixture.componentInstance.playbackActive()).toBe(true);
+        expect(fixture.componentInstance.playbackActive()).toBe(false);
         expect(enrichMovie).toHaveBeenCalledTimes(2);
     });
 

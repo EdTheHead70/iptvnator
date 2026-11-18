@@ -13,6 +13,8 @@ import {
     DEFAULT_APP_UPDATE_CHANNEL,
     DEFAULT_DASHBOARD_RAILS_SETTINGS,
     DEFAULT_TMDB_SETTINGS,
+    DEFAULT_STREAM_TESTING_SETTINGS,
+    normalizeStreamTestingSettings,
     EpgViewMode,
     Language,
     normalizeAppUpdateChannel,
@@ -66,6 +68,38 @@ export function createSettingsForm(
     supportsEpgDisplay = supportsEpg
 ) {
     const form = formBuilder.group({
+        streamTesting: formBuilder.group({
+            concurrency: [
+                DEFAULT_STREAM_TESTING_SETTINGS.concurrency,
+                [
+                    Validators.required,
+                    Validators.min(1),
+                    Validators.max(8),
+                    Validators.pattern(/^\d+$/),
+                ],
+            ],
+            timeoutSeconds: [
+                DEFAULT_STREAM_TESTING_SETTINGS.timeoutSeconds,
+                [
+                    Validators.required,
+                    Validators.min(1),
+                    Validators.max(60),
+                    Validators.pattern(/^\d+$/),
+                ],
+            ],
+            method: [DEFAULT_STREAM_TESTING_SETTINGS.method],
+            headFallback: [DEFAULT_STREAM_TESTING_SETTINGS.headFallback],
+            rangeBytes: [DEFAULT_STREAM_TESTING_SETTINGS.rangeBytes],
+            cacheSeconds: [
+                DEFAULT_STREAM_TESTING_SETTINGS.cacheSeconds,
+                [
+                    Validators.required,
+                    Validators.min(0),
+                    Validators.max(3600),
+                    Validators.pattern(/^\d+$/),
+                ],
+            ],
+        }),
         player: [VideoPlayer.VideoJs],
         webPlayerSharedControls: true,
         playerAmbientMode: false,
@@ -105,6 +139,7 @@ export function createSettingsForm(
         updateChannel: DEFAULT_APP_UPDATE_CHANNEL as AppUpdateChannel,
         showExternalPlaybackBar: true,
         stripCountryPrefix: false,
+        hideDuplicateChannels: true,
         theme: Theme.SystemTheme,
         themeAccent: null as ThemeAccent | null,
         systemLightTheme: Theme.LightTheme as Theme,
@@ -144,6 +179,7 @@ export function createSettingsForm(
                       Validators.max(720),
                       Validators.pattern(/^-?\d+$/),
                   ]),
+                  preferEpgIcons: false,
               }
             : {}),
         tmdb: formBuilder.group({
@@ -204,6 +240,7 @@ export function createSettingsFromFormValue(
         : (currentSettings.epgUrl ?? []);
 
     return {
+        streamTesting: normalizeStreamTestingSettings(value.streamTesting),
         player: value.player ?? VideoPlayer.VideoJs,
         webPlayerSharedControls: value.webPlayerSharedControls ?? true,
         playerAmbientMode: value.playerAmbientMode ?? false,
@@ -226,6 +263,7 @@ export function createSettingsFromFormValue(
         updateChannel: normalizeAppUpdateChannel(value.updateChannel),
         showExternalPlaybackBar: value.showExternalPlaybackBar ?? true,
         stripCountryPrefix: value.stripCountryPrefix ?? false,
+        hideDuplicateChannels: value.hideDuplicateChannels !== false,
         theme: value.theme ?? Theme.SystemTheme,
         themeAccent: normalizeThemeAccent(value.themeAccent),
         systemLightTheme: normalizeSystemTheme(value.systemLightTheme, 'light'),
@@ -262,6 +300,8 @@ export function createSettingsFromFormValue(
         epgOffsetMinutes: normalizeEpgOffsetMinutes(
             value.epgOffsetMinutes ?? currentSettings.epgOffsetMinutes
         ),
+        preferEpgIcons:
+            value.preferEpgIcons ?? currentSettings.preferEpgIcons ?? false,
         trustedPrivateNetworkEpgUrls:
             currentSettings.trustedPrivateNetworkEpgUrls ?? [],
         trustedInsecureTlsHosts: currentSettings.trustedInsecureTlsHosts ?? [],

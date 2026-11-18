@@ -19,6 +19,7 @@ import { StorageMap } from '@ngx-pwa/local-storage';
 import { firstValueFrom } from 'rxjs';
 import {
     DEFAULT_TMDB_SETTINGS,
+    normalizeStreamTestingSettings,
     ElectronBridgeTrustOptions,
     EpgViewMode,
     Settings,
@@ -89,6 +90,9 @@ export const SettingsStore = signalStore(
                             ...storedSettings,
                             epgUrl: normalizeEpgSourceUrls(
                                 storedSettings.epgUrl
+                            ),
+                            streamTesting: normalizeStreamTestingSettings(
+                                storedSettings.streamTesting
                             ),
                             language: normalizeAppLanguage(
                                 storedSettings.language

@@ -26,7 +26,7 @@
               "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
               "CLANG_ENABLE_OBJC_ARC": "YES",
               "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
-              "MACOSX_DEPLOYMENT_TARGET": "10.15",
+              "MACOSX_DEPLOYMENT_TARGET": "11.0",
               "OTHER_LDFLAGS": [
                 "-Wl,-rpath,@loader_path/lib"
               ]

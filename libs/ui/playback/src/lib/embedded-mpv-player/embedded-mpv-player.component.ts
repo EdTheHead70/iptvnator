@@ -1,3 +1,4 @@
+import { EmbeddedMpvDockLabelDirective } from './embedded-mpv-dock-label.directive';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -73,6 +74,7 @@ const RECORDING_MESSAGE_DISMISS_DELAY_MS = 5000;
     styleUrl: './embedded-mpv-player.component.scss',
     imports: [
         EmbeddedMpvDockPanelComponent,
+        EmbeddedMpvDockLabelDirective,
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
@@ -183,11 +185,23 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                 recording: false,
             }
     );
+    /**
+     * A deliberate stop keeps this playback from restarting until the viewer
+     * asks for it. The host replaces the playback object on a channel change,
+     * which clears the stopped state automatically.
+     */
+    private readonly stoppedPlayback = signal<ResolvedPortalPlayback | null>(
+        null
+    );
+    readonly isStopped = computed(
+        () => this.stoppedPlayback() === this.playback()
+    );
     readonly isLoading = computed(
         () =>
-            !this.support() ||
-            this.session()?.status === 'loading' ||
-            (!this.session() && this.isSupported())
+            !this.isStopped() &&
+            (!this.support() ||
+                this.session()?.status === 'loading' ||
+                (!this.session() && this.isSupported()))
     );
     readonly isPaused = computed(
         () =>
@@ -195,8 +209,16 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             this.session()?.status === 'idle' ||
             this.session()?.status === 'ended'
     );
+    readonly showPlayIcon = computed(() => this.isStopped() || this.isPaused());
     readonly isPlaying = computed(() => this.session()?.status === 'playing');
     readonly isErrored = computed(() => this.session()?.status === 'error');
+    readonly canStop = computed(
+        () =>
+            this.isSupported() &&
+            !this.isErrored() &&
+            !this.isStopped() &&
+            this.session() !== null
+    );
     /**
      * The main process is waiting to reload a dropped stream or has the
      * reload in flight (see embedded-mpv-reconnect.ts); shown like an error
@@ -542,13 +564,15 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             const viewport = this.viewport();
             const playback = this.playback();
             const supported = this.isSupported();
+            const stopped = this.isStopped();
             this.controller.retryToken();
 
             if (
                 !viewport ||
                 !playback.streamUrl ||
                 !supported ||
-                !window.electron
+                !window.electron ||
+                stopped
             ) {
                 return;
             }
@@ -672,7 +696,21 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
 
     async togglePaused(): Promise<void> {
         this.legacyInteractions.revealControls();
+        if (this.isStopped()) {
+            this.resumePlayback();
+            return;
+        }
         await this.controller.togglePaused();
+    }
+
+    /** Stops playback and leaves the player restartable on screen. */
+    stop(): void {
+        this.legacyInteractions.revealControls();
+        this.stoppedPlayback.set(this.playback());
+    }
+
+    resumePlayback(): void {
+        this.stoppedPlayback.set(null);
     }
 
     async toggleFullscreen(): Promise<void> {

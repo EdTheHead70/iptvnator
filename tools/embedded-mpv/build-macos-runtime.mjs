@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { assertMacosTargetArchitecture } from '../packaging/macos-architecture-policy.cjs';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -10,8 +11,7 @@ const rawArgs = process.argv.slice(2);
 const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs;
 const [arch, rawPrefix] = args;
 const validArchitectures = new Set(['arm64', 'x64']);
-const macosDeploymentTarget =
-    process.env.MACOSX_DEPLOYMENT_TARGET ?? '11.0';
+const macosDeploymentTarget = process.env.MACOSX_DEPLOYMENT_TARGET ?? '11.0';
 const workspaceRoot = process.cwd();
 
 const sourcePackages = [
@@ -94,6 +94,8 @@ if (!validArchitectures.has(arch) || !rawPrefix) {
     process.exit(1);
 }
 
+assertMacosTargetArchitecture(arch, macosDeploymentTarget);
+
 const prefix = path.resolve(rawPrefix);
 const buildRoot = path.resolve(
     process.env.IPTVNATOR_EMBEDDED_MPV_BUILD_ROOT ??
@@ -101,11 +103,12 @@ const buildRoot = path.resolve(
 );
 const archiveRoot = path.join(buildRoot, 'archives');
 const sourceRoot = path.join(buildRoot, 'sources');
-const packageById = new Map(sourcePackages.map((source) => [source.id, source]));
+const packageById = new Map(
+    sourcePackages.map((source) => [source.id, source])
+);
 let appliedMpvPatches = [];
 const parallelism =
-    process.env.MAKEFLAGS?.match(/-j\s*(\d+)/)?.[1] ??
-    String(os.cpus().length);
+    process.env.MAKEFLAGS?.match(/-j\s*(\d+)/)?.[1] ?? String(os.cpus().length);
 
 const ffmpegConfigureFlags = [
     `--prefix=${prefix}`,
@@ -220,7 +223,9 @@ function ensureTools() {
         'pkg-config',
         'git',
     ];
-    const missing = requiredCommands.filter((command) => !commandExists(command));
+    const missing = requiredCommands.filter(
+        (command) => !commandExists(command)
+    );
 
     if (missing.length > 0) {
         throw new Error(`Missing required build tools: ${missing.join(', ')}`);
@@ -526,7 +531,9 @@ function validateRuntimeLinks() {
                     dependencyPath.startsWith(prefixValue)
                 )
             ) {
-                errors.push(`${dylibPath} links to forbidden ${dependencyPath}`);
+                errors.push(
+                    `${dylibPath} links to forbidden ${dependencyPath}`
+                );
                 continue;
             }
 
@@ -538,7 +545,9 @@ function validateRuntimeLinks() {
 
     if (errors.length > 0) {
         throw new Error(
-            ['Embedded MPV runtime link validation failed.', ...errors].join('\n')
+            ['Embedded MPV runtime link validation failed.', ...errors].join(
+                '\n'
+            )
         );
     }
 }
@@ -555,9 +564,7 @@ function sourceMetadata(packageId) {
             ? { sourceUrls: sourcePackage.sourceUrls }
             : {}),
         ...(sourcePackage.tag ? { sourceTag: sourcePackage.tag } : {}),
-        ...(sourcePackage.sha256
-            ? { sourceSha256: sourcePackage.sha256 }
-            : {}),
+        ...(sourcePackage.sha256 ? { sourceSha256: sourcePackage.sha256 } : {}),
         ...(sourcePackage.gitCommit
             ? { sourceGitCommit: sourcePackage.gitCommit }
             : {}),
@@ -608,7 +615,8 @@ function writeManifest() {
         ),
         ffmpeg: {
             ...sourceMetadata('ffmpeg'),
-            licensePolicy: 'LGPL, built without --enable-gpl and --enable-nonfree',
+            licensePolicy:
+                'LGPL, built without --enable-gpl and --enable-nonfree',
             configureFlags: ffmpegConfigureFlags,
         },
         mpv: {

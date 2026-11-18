@@ -371,7 +371,6 @@ Call `POST /reset?macAddress=<mac>` to clear a MAC's favorites (and its cached
 generated data) between test runs — see "Test Isolation" for why the scoped
 form is the one specs should use.
 
-
 ## Playwright Integration
 
 `apps/web-e2e/playwright.config.ts` registers the mock server as a second `webServer` entry:

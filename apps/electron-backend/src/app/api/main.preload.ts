@@ -5,6 +5,7 @@ import type {
     XtreamFavoriteRemovalRef,
     XtreamBackupFavoriteItem,
     XtreamCatalogStateCondition,
+    StreamProbeRequestOptions,
 } from '@iptvnator/shared/interfaces';
 import type { SourceProbeContext } from '@iptvnator/shared/interfaces';
 import { contextBridge, ipcRenderer, webFrame, webUtils } from 'electron';
@@ -849,8 +850,15 @@ const electronApi: ElectronBridgeApi = {
     probeStreamUrl: (
         url: string,
         method?: 'GET' | 'HEAD',
-        headers?: StreamProbeHeaders
-    ) => ipcRenderer.invoke('STREAM_PROBE_URL', { url, method, ...headers }),
+        headers?: StreamProbeHeaders,
+        options?: StreamProbeRequestOptions
+    ) =>
+        ipcRenderer.invoke('STREAM_PROBE_URL', {
+            url,
+            method,
+            ...headers,
+            ...options,
+        }),
     refreshPlaylist: (payload: PlaylistRefreshPayload) =>
         ipcRenderer.invoke('PLAYLIST:REFRESH', payload),
     cancelPlaylistRefresh: (operationId: string) =>

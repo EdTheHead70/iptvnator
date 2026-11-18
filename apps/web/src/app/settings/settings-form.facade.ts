@@ -67,6 +67,8 @@ export class SettingsFormFacade {
     private readonly settingsService = inject(SettingsService);
     private readonly settingsSnackbar = inject(SettingsSnackbarService);
     private readonly settingsStore = inject(SettingsStore);
+    /** Filled from the desktop bridge when the page loads. */
+    private defaultRecordingFolder = '';
 
     /** XMLTV sources: the source list, its actions and the Xtream preference. */
     readonly supportsEpg =
@@ -128,11 +130,22 @@ export class SettingsFormFacade {
     /** Waits for the persisted settings to be available */
     async loadSettings(): Promise<void> {
         await this.settingsStore.loadSettings();
+        this.defaultRecordingFolder = await this.readDefaultRecordingFolder();
 
         if (this.settingsStore.storageFailure() === 'load') {
             // The form is about to show defaults that are not the user's saved
             // values — say so instead of letting them look genuine.
             this.settingsSnackbar.storageFailure('load');
+        }
+    }
+
+    private async readDefaultRecordingFolder(): Promise<string> {
+        try {
+            const folder =
+                await window.electron?.getEmbeddedMpvDefaultRecordingFolder?.();
+            return folder?.trim() ?? '';
+        } catch {
+            return '';
         }
     }
 
@@ -143,6 +156,11 @@ export class SettingsFormFacade {
         const currentSettings = this.settingsStore.getSettings();
         this.form.patchValue({
             ...currentSettings,
+            // An empty setting means "use the default"; show what that is
+            // instead of leaving the field blank.
+            recordingFolder:
+                currentSettings.recordingFolder?.trim() ||
+                this.defaultRecordingFolder,
             ageRatingCountry: normalizeAgeRatingCountry(
                 currentSettings.ageRatingCountry
             ),

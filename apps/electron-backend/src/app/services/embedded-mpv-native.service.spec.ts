@@ -38,6 +38,8 @@ const commandLineMock = {
 const appMock = {
     isPackaged: true,
     getAppPath: () => '/mock/app.asar',
+    getPath: (name: string) =>
+        name === 'videos' ? '/mock/Movies' : `/mock/${name}`,
     commandLine: commandLineMock,
 };
 
@@ -1188,6 +1190,12 @@ describe('EmbeddedMpvNativeService power blocker', () => {
         expect(loadAddonModule).toHaveBeenCalledWith(__filename);
         expect(support.supported).toBe(true);
         expect(support.capabilities?.recording).toBe(true);
+    });
+
+    it('defaults recordings to the IPTVNator folder inside the videos directory', () => {
+        expect(service.getDefaultRecordingFolder()).toBe(
+            path.join('/mock/Movies', 'IPTVNator')
+        );
     });
 
     it('starts recording to a sanitized reserved unique ts file in the requested directory', () => {

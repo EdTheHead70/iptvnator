@@ -1,3 +1,4 @@
+import type { StreamTestingSettings } from './stream-testing-settings';
 import type { AppUpdateChannel } from './app-update-channel.util';
 import { Language } from './language.enum';
 import { StreamFormat } from './stream-format.enum';
@@ -132,6 +133,7 @@ export function normalizeDashboardRailsSettings(
  * Describes all available settings options of the application
  */
 export interface Settings {
+    streamTesting?: StreamTestingSettings;
     player: VideoPlayer;
     /**
      * Use IPTVnator's shared controls in HTML5, Video.js, and ArtPlayer.
@@ -218,6 +220,12 @@ export interface Settings {
     showExternalPlaybackBar?: boolean;
     /** Strip country/group prefixes like "US | " or "UK - " from channel names */
     stripCountryPrefix?: boolean;
+    /**
+     * Show one row per stream URL in the live channel list; duplicate entries
+     * of the same stream stay hidden. On by default; an explicit false lists
+     * every entry.
+     */
+    hideDuplicateChannels?: boolean;
     theme: Theme;
     /**
      * Accent colour laid over the theme (`THEME_ACCENTS` id). A missing or
@@ -297,6 +305,12 @@ export interface Settings {
      * like `epgViewMode`.
      */
     epgOffsetMinutes?: number;
+    /**
+     * Prefer the channel icon published by the EPG source over the playlist's
+     * `tvg-logo` when the guide provides one. Off by default; applies to the
+     * live channel list and the player's channel identity.
+     */
+    preferEpgIcons?: boolean;
     /** Per-rail dashboard visibility preferences. Missing keys default on. */
     dashboardRails?: DashboardRailsSettings;
     /**

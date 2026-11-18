@@ -10,6 +10,8 @@ export interface ParsedPlaylist {
 
 export interface ParsedPlaylistItem {
     name: string;
+    /** Standalone EXTINF content type; absent entries belong to Live TV. */
+    type?: string;
     tvg: {
         id: string;
         name: string;

@@ -1,3 +1,6 @@
+const {
+    assertMacosTargetArchitecture,
+} = require('../../tools/packaging/macos-architecture-policy.cjs');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -737,6 +740,12 @@ function readLinuxDynamicSection(filePath) {
 }
 
 function main() {
+    if (targetPlatform === 'darwin') {
+        assertMacosTargetArchitecture(
+            targetArch,
+            process.env.MACOSX_DEPLOYMENT_TARGET
+        );
+    }
     fs.mkdirSync(outputDir, { recursive: true });
     cleanDistNativeOutput();
     cleanOutput();

@@ -327,3 +327,44 @@ describe('settings form utils — age rating country', () => {
         ).toBe('auto');
     });
 });
+
+describe('stream testing settings form', () => {
+    it('uses the existing defaults and saves custom test settings', () => {
+        const form = createSettingsForm(new FormBuilder(), true);
+        expect(form.get('streamTesting.concurrency')?.value).toBe(2);
+        form.patchValue({
+            streamTesting: {
+                concurrency: 1,
+                timeoutSeconds: 5,
+                method: 'GET',
+                headFallback: false,
+                rangeBytes: 16384,
+                cacheSeconds: 0,
+            },
+        });
+        expect(form.valid).toBe(true);
+        expect(
+            createSettingsFromFormValue(form, {} as Settings).streamTesting
+        ).toEqual({
+            concurrency: 1,
+            timeoutSeconds: 5,
+            method: 'GET',
+            headFallback: false,
+            rangeBytes: 16384,
+            cacheSeconds: 0,
+        });
+    });
+    it.each([
+        ['concurrency', 0],
+        ['concurrency', 9],
+        ['timeoutSeconds', 0],
+        ['timeoutSeconds', 61],
+        ['cacheSeconds', -1],
+        ['cacheSeconds', 3601],
+        ['timeoutSeconds', 1.5],
+    ])('rejects invalid %s value %s', (field, value) => {
+        const form = createSettingsForm(new FormBuilder(), true);
+        form.get(`streamTesting.${field}`)?.setValue(value);
+        expect(form.valid).toBe(false);
+    });
+});

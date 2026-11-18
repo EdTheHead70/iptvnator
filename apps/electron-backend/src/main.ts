@@ -16,6 +16,7 @@ import { registerPerformanceCountersHandler } from './app/services/performance-c
 import { countMainProcessSqlStatements } from './app/services/main-sql-statement-count';
 import { readCompileCacheOutcome } from './app/services/compile-cache';
 import { applyElectronNetworkDefaults } from './app/util/network-defaults';
+import { ensureDefaultRecordingFolder } from './app/util/default-recording-folder';
 import { registerStaticHeaderShims } from './app/services/request-header-overrides.service';
 import WindowEvents from './app/events/window.events';
 import { bootstrapWindowCloseGuard } from './app/services/window-close-guard.service';
@@ -263,6 +264,7 @@ runEmbeddedMpvRuntimeDiagnosticOrContinue(process.argv, () => {
     // Bootstrap app events after Electron app is ready
     app.whenReady().then(async () => {
         traceStartupPhase('app.whenReady');
+        ensureDefaultRecordingFolder();
         await Main.bootstrapAppEvents();
     });
 

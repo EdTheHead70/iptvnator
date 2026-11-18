@@ -36,6 +36,7 @@ import {
     PortalDetailShellComponent,
     castMembersFromNames,
 } from '@iptvnator/ui/components';
+import { getM3uContentType } from '@iptvnator/shared/m3u-utils';
 import { formatDurationLabel } from '@iptvnator/portal/shared/util';
 import { PortalInlinePlayerComponent } from '@iptvnator/ui/playback';
 import {
@@ -43,21 +44,7 @@ import {
     m3uVodEntryKey,
 } from './m3u-vod-metadata.service';
 
-/**
- * VOD detail experience for an M3U entry recognized as a movie: the same
- * two-state shell the portals use, fed by TMDB metadata instead of a portal
- * payload. Watch-first — the parent activates a channel and playback starts
- * immediately (M3U zapping semantics), with the About block below where the
- * EPG zone would be; Escape/close reveals the Browse hero.
- *
- * The shell renders provider facts (entry name, logo) instantly; the TMDB
- * lookup patches the same view asynchronously, so a missing or failed match
- * simply leaves the thin provider presentation in place — no layout jump.
- *
- * External MPV/VLC users keep the Browse layout: the m3u-state effects
- * already launched the player on activation, so `inlinePlayerAvailable` is
- * false and this component never mounts an inline player for them.
- */
+/** M3U movie/series information opens before playback, with optional TMDB enrichment. */
 @Component({
     selector: 'app-m3u-vod-detail',
     providers: [M3uVodMetadataService],
@@ -110,22 +97,30 @@ export class M3uVodDetailComponent {
     readonly playbackStarted = output<void>();
 
     /** Player closed by the user — Browse until Play or the next channel. */
-    private readonly playerDismissed = signal(false);
+    private readonly playingEntryKey = signal<string | null>(null);
 
     constructor() {
         effect(() => {
             const channel = this.channel();
             untracked(() => {
-                this.playerDismissed.set(false);
+                this.playingEntryKey.set(null);
                 this.metadata.load(channel);
             });
         });
     }
 
+    readonly isSeries = computed(
+        () => getM3uContentType(this.channel()) === 'series'
+    );
     readonly tmdb = computed(() => this.metadata.state().details);
     readonly certifications = computed(() => {
         const details = this.tmdb();
-        return details ? extractTmdbCertifications(details, 'movie') : [];
+        return details
+            ? extractTmdbCertifications(
+                  details,
+                  this.isSeries() ? 'tv' : 'movie'
+              )
+            : [];
     });
 
     /**
@@ -165,7 +160,11 @@ export class M3uVodDetailComponent {
     });
     readonly kindLabel = computed(() => {
         this.languageTick();
-        return this.translate.instant('WORKSPACE.DASHBOARD.TYPE_MOVIE');
+        return this.translate.instant(
+            this.isSeries()
+                ? 'WORKSPACE.DASHBOARD.TYPE_SERIES'
+                : 'WORKSPACE.DASHBOARD.TYPE_MOVIE'
+        );
     });
     readonly rating = computed(() => {
         const details = this.tmdb();
@@ -209,7 +208,10 @@ export class M3uVodDetailComponent {
      * The parent already determines VOD playback independently of metadata.
      */
     readonly inlinePlayback = computed<ResolvedPortalPlayback | null>(() => {
-        if (!this.inlinePlayerAvailable() || this.playerDismissed()) {
+        if (
+            !this.inlinePlayerAvailable() ||
+            this.playingEntryKey() !== m3uVodEntryKey(this.channel())
+        ) {
             return null;
         }
         return this.playback();
@@ -219,12 +221,14 @@ export class M3uVodDetailComponent {
         () => this.inlinePlayerAvailable() && this.playback() !== null
     );
 
+    readonly canStartPlayback = computed(() => this.playback() !== null);
+
     closeInlinePlayback(): void {
-        this.playerDismissed.set(true);
+        this.playingEntryKey.set(null);
     }
 
     startPlayback(): void {
         this.playbackStarted.emit();
-        this.playerDismissed.set(false);
+        this.playingEntryKey.set(m3uVodEntryKey(this.channel()));
     }
 }

@@ -140,6 +140,42 @@ describe('buildExternalPlayerPayload', () => {
     describe('shouldAutoLaunchExternalPlayer', () => {
         const mpvSettings = { player: VideoPlayer.MPV };
 
+        it.each(['movie', 'series'])(
+            'waits for Play before launching external players for %s',
+            (type) => {
+                for (const player of [
+                    VideoPlayer.MPV,
+                    VideoPlayer.VLC,
+                ] as const) {
+                    const channel = { ...activeChannel, type };
+                    expect(
+                        shouldAutoLaunchExternalPlayer(
+                            { player },
+                            undefined,
+                            channel,
+                            player
+                        )
+                    ).toBe(false);
+                    expect(
+                        shouldAutoLaunchExternalPlayer(
+                            { player },
+                            false,
+                            channel,
+                            player
+                        )
+                    ).toBe(false);
+                    expect(
+                        shouldAutoLaunchExternalPlayer(
+                            { player },
+                            true,
+                            channel,
+                            player
+                        )
+                    ).toBe(true);
+                }
+            }
+        );
+
         it('launches the configured external player for regular channels', () => {
             expect(
                 shouldAutoLaunchExternalPlayer(

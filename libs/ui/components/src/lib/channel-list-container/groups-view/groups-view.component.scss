@@ -66,6 +66,7 @@
 
 .groups-nav-header__content {
     @include layout.groups-nav-header-row;
+    flex-wrap: wrap;
 }
 
 .groups-nav-title {

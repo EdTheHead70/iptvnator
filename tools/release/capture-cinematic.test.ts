@@ -282,4 +282,56 @@ describe('interactive preview cleanup', () => {
             output.destroy();
         }
     });
+
+    it('finishes when Electron closes while its main page stays open', async () => {
+        const app = new EventEmitter();
+        const page = Object.assign(new EventEmitter(), {
+            isClosed: () => false,
+        });
+        const input = new PassThrough();
+        const output = new PassThrough();
+        const pending = waitForCinematicPreview(
+            app as unknown as ElectronApplication,
+            page as unknown as Page,
+            { input, output }
+        );
+        try {
+            app.emit('close');
+            assert.equal(await pending, true);
+            assert.equal(app.listenerCount('close'), 0);
+            assert.equal(page.listenerCount('close'), 0);
+        } finally {
+            input.destroy();
+            output.destroy();
+        }
+    });
+
+    it('finishes on SIGINT without waiting for a terminal line', async () => {
+        const app = new EventEmitter();
+        const page = Object.assign(new EventEmitter(), {
+            isClosed: () => false,
+        });
+        const input = new PassThrough();
+        const output = new PassThrough();
+        const before = new Set(process.listeners('SIGINT'));
+        const pending = waitForCinematicPreview(
+            app as unknown as ElectronApplication,
+            page as unknown as Page,
+            { input, output }
+        );
+        try {
+            const handlers = process
+                .listeners('SIGINT')
+                .filter((listener) => !before.has(listener));
+            assert.equal(handlers.length, 1);
+            handlers[0]("SIGINT");
+            assert.equal(await pending, false);
+            assert.equal(app.listenerCount('close'), 0);
+            assert.equal(page.listenerCount('close'), 0);
+        } finally {
+            app.emit('close');
+            input.destroy();
+            output.destroy();
+        }
+    });
 });

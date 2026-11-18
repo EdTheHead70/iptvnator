@@ -33,7 +33,9 @@
                 "{workspaceRoot}/tools/release/screenshot-guards.test.mjs",
                 "{workspaceRoot}/tools/release/nightly-version.test.mjs",
                 "{workspaceRoot}/tools/release/generate-theme-preview.mjs",
-                "{workspaceRoot}/tools/release/theme-preview.test.mjs"
+                "{workspaceRoot}/tools/release/theme-preview.test.mjs",
+                "{workspaceRoot}/apps/website/public/blog/*/previews/**",
+                "{workspaceRoot}/apps/website/public/blog/*/screenshots/**"
             ],
             "options": {
                 "command": "node --test tools/release/release-notes.test.mjs tools/release/release-note-gate.test.mjs tools/release/build-release-notes.test.mjs tools/release/release-announcements.test.mjs tools/release/verify-draft-release.test.mjs tools/release/highlight-cards.test.mjs tools/release/screenshot-guards.test.mjs tools/release/nightly-version.test.mjs tools/release/theme-preview.test.mjs",
@@ -50,7 +52,7 @@
                 "{workspaceRoot}/tools/eslint-rules/**/*",
                 "{workspaceRoot}/tools/eslint/**/*"
             ],
-            "command": "eslint \"tools/release/*.mjs\" \"tools/release/capture-release-screenshots.ts\" \"tools/release/capture-app-driver.ts\" \"tools/release/capture-fixtures.ts\" \"tools/release/capture-navigation.ts\" \"tools/release/capture-navigation-helpers.ts\" \"tools/release/capture-navigation-setup-actions.ts\" \"tools/release/capture-navigation-portal-actions.ts\" \"tools/release/capture-navigation-download-actions.ts\" \"tools/release/capture-network-gate.ts\" \"tools/release/capture-tmdb-check.ts\" \"tools/release/capture-cinematic*.ts\" \"tools/release/capture-runtime.ts\" \"tools/release/capture-navigation-cinematic-actions.ts\""
+            "command": "eslint \"tools/release/*.mjs\" \"tools/release/capture-release-screenshots.ts\" \"tools/release/capture-app-driver.ts\" \"tools/release/capture-fixtures.ts\" \"tools/release/capture-navigation.ts\" \"tools/release/capture-navigation-helpers.ts\" \"tools/release/capture-navigation-setup-actions.ts\" \"tools/release/capture-navigation-portal-actions.ts\" \"tools/release/capture-navigation-download-actions.ts\" \"tools/release/capture-network-gate.ts\" \"tools/release/capture-tmdb-check.ts\" \"tools/release/capture-cinematic*.ts\" \"tools/release/capture-runtime.ts\" \"tools/release/capture-navigation-cinematic-actions.ts\" \"tools/release/capture-browser-shot.ts\""
         },
         "test-cinematic": {
             "executor": "nx:run-commands",

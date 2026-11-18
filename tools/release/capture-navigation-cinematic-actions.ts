@@ -1,5 +1,6 @@
 /** Real navigation and activity for the opt-in cinematic screenshot preset. */
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
+import { XTREAM_MOCK_ORIGIN } from './capture-fixtures';
 import {
     type CaptureAction,
     openXtreamSection,
@@ -11,11 +12,36 @@ import {
     waitForCinematicLiveEpg,
 } from './capture-cinematic-live';
 
+/** Detail shots must show the synopsis expanded, not its clamped preview. */
+const SYNOPSIS_TOGGLE = 'app-content-hero .details__description-toggle';
+const SYNOPSIS_DETAIL_SLUGS = new Set([
+    'xtream-vod-details',
+    'xtream-series-season-open',
+]);
+
+/** Matches the mock's marketing asset path for the curated fixture titles. */
+const marketingBackdrop = (title: string): string =>
+    `${XTREAM_MOCK_ORIGIN}/assets/marketing/backdrop/${title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')}.svg`;
+
 export async function seedCinematicActivity(page: Page): Promise<void> {
     const playlistId = requirePlaylistId('xtreams');
     const items = [62003, 62004, 62005, 62006, 62007, 62008, 62009];
+    // These four cards need a backdrop the imported rows do not carry. Their
+    // ids follow the fixture's showcase order, so the title check below fails
+    // the run if that order moves instead of pairing a card with the wrong art.
+    const resumeItems = [
+        { id: 62003, title: 'House of Tides', positionSeconds: 1340 },
+        { id: 62002, title: 'Summer Static', positionSeconds: 2040 },
+        { id: 62001, title: 'The Paper Astronaut', positionSeconds: 940 },
+        { id: 62000, title: 'Black Harbor', positionSeconds: 1860 },
+    ].map((item) => ({
+        ...item,
+        backdropUrl: marketingBackdrop(item.title),
+    }));
     await page.evaluate(
-        async ({ playlistId, items }) => {
+        async ({ playlistId, items, resumeItems }) => {
             const bridge = window.electron;
             if (!bridge?.dbAddFavorite || !bridge.dbSavePlaybackPosition)
                 throw new Error('Activity bridge unavailable');
@@ -44,29 +70,33 @@ export async function seedCinematicActivity(page: Page): Promise<void> {
                     durationSeconds: 6840,
                 });
             }
-            // Fixed activity identities; the hero is pinned by title afterwards.
-            for (const [index, id] of [62003, 62002, 62001, 62000].entries()) {
+            for (const item of resumeItems) {
                 const content = await bridge.dbGetContentByXtreamId(
-                    id,
+                    item.id,
                     playlistId,
                     'movie'
                 );
                 if (!content)
-                    throw new Error(`Demo resume content missing: ${id}`);
+                    throw new Error(`Demo resume content missing: ${item.id}`);
+                if (content.title !== item.title)
+                    throw new Error(
+                        `Demo fixture order changed: ${item.id} is ` +
+                            `"${content.title}", expected "${item.title}"`
+                    );
                 await bridge.dbAddRecentItem(
                     content.id,
                     playlistId,
-                    `http://localhost:3211/assets/marketing/backdrop/${['house-of-tides', 'summer-static', 'the-paper-astronaut', 'black-harbor'][index]}.svg`
+                    item.backdropUrl
                 );
                 await bridge.dbSavePlaybackPosition(playlistId, {
-                    contentXtreamId: id,
+                    contentXtreamId: item.id,
                     contentType: 'vod',
-                    positionSeconds: [1340, 2040, 940, 1860][index],
+                    positionSeconds: item.positionSeconds,
                     durationSeconds: 6840,
                 });
             }
         },
-        { playlistId, items }
+        { playlistId, items, resumeItems }
     );
 }
 
@@ -96,7 +126,7 @@ async function showCinematicDashboard(page: Page): Promise<void> {
         await pause.click();
     await hero
         .locator(
-            '[data-test-id="dashboard-hero-dot"][aria-label="Show Black Harbor"]'
+            '[data-test-id="dashboard-hero-dot"][aria-label*="Black Harbor"]'
         )
         .click();
     await page.waitForFunction(
@@ -132,7 +162,7 @@ export async function openCinematicMovie(page: Page): Promise<void> {
         .locator('app-content-hero')
         .filter({ hasText: 'Black Harbor' })
         .waitFor();
-    await expandSynopsis(page);
+    await expandSynopsis(page, 'xtream-vod-details');
 }
 
 export async function openCinematicSeries(page: Page): Promise<void> {
@@ -142,14 +172,42 @@ export async function openCinematicSeries(page: Page): Promise<void> {
         .locator('.episode-list-item, .episode-card')
         .filter({ hasText: 'The Dawn Shift' })
         .waitFor();
-    await expandSynopsis(page);
+    await expandSynopsis(page, 'xtream-series-season-open');
 }
 
-async function expandSynopsis(page: Page): Promise<void> {
-    const toggle = page.locator(
-        'app-content-hero .details__description-toggle[aria-expanded="false"]'
-    );
-    if (await toggle.count()) await toggle.click();
+async function expandSynopsis(page: Page, slug: string): Promise<void> {
+    const toggle = page.locator(SYNOPSIS_TOGGLE).first();
+    try {
+        await toggle.waitFor({ state: 'visible', timeout: 10_000 });
+    } catch {
+        throw new Error(
+            `Cinematic synopsis toggle missing for ${slug}: ` +
+                'the description never became clampable'
+        );
+    }
+    await ensureSynopsisExpanded(page, toggle, slug);
+}
+
+/** Expand the toggle and prove it ended expanded; throws otherwise. */
+async function ensureSynopsisExpanded(
+    page: Page,
+    toggle: Locator,
+    slug: string
+): Promise<void> {
+    if ((await toggle.getAttribute('aria-expanded')) === 'true') return;
+    await toggle.click();
+    try {
+        await page.waitForFunction(
+            (selector) =>
+                document
+                    .querySelector(selector)
+                    ?.getAttribute('aria-expanded') === 'true',
+            SYNOPSIS_TOGGLE,
+            { timeout: 5_000 }
+        );
+    } catch {
+        throw new Error(`Cinematic synopsis did not expand for ${slug}`);
+    }
 }
 
 /** Final frame checks wait for text transitions, font metrics and image decode. */
@@ -161,6 +219,12 @@ export async function settleCinematicFrame(
     await page.evaluate(() =>
         (document.activeElement as HTMLElement | null)?.blur()
     );
+    if (SYNOPSIS_DETAIL_SLUGS.has(slug)) {
+        // A late enrichment render can collapse the text after its setup click.
+        const toggle = page.locator(SYNOPSIS_TOGGLE).first();
+        if (await toggle.count())
+            await ensureSynopsisExpanded(page, toggle, slug);
+    }
     await page.evaluate(async () => {
         await document.fonts.ready;
         const images = [

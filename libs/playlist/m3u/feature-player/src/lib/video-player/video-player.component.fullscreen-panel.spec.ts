@@ -364,10 +364,8 @@ describe('VideoPlayerComponent fullscreen channel panel + zapping', () => {
 
     describe('fullscreen panel rows', () => {
         it('withholds recognized movies only while they would open the VOD detail', () => {
-            // With enrichment on, a movie row swaps the live layout for the
-            // VOD detail shell, which replaces the fullscreen-owning player —
-            // the same trap as radio. With enrichment off it plays inline
-            // like any live entry and stays offered.
+            // Movie details replace the fullscreen-owning player regardless
+            // of whether optional TMDB enrichment is enabled.
             channels.set([sampleChannel, movieChannel, nextChannel]);
 
             tmdbEnabled.set(true);
@@ -379,7 +377,6 @@ describe('VideoPlayerComponent fullscreen channel panel + zapping', () => {
             tmdbEnabled.set(false);
             expect(component.fullscreenPanelChannels()).toEqual([
                 sampleChannel,
-                movieChannel,
                 nextChannel,
             ]);
         });

@@ -1,4 +1,4 @@
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { connect } from 'node:net';
 import { join } from 'node:path';
 import express from 'express';
@@ -391,6 +391,55 @@ describe('Xtream mock server factory', () => {
                 `${running.origin}/assets/marketing/logo/aurora-news.svg`
             );
             expect(xml).not.toMatch(/https?:\/\/(?!127\.0\.0\.1|localhost)/);
+        } finally {
+            await running.close();
+        }
+    });
+
+    it('serves committed raster artwork for .svg URLs and keeps the SVG fallback', async () => {
+        const running = await startLoopbackServer(
+            createXtreamMockApp({ host: '127.0.0.1', port: 0 })
+        );
+        try {
+            const marketingRoot = join(
+                process.cwd(),
+                'apps/xtream-mock-server/public/marketing'
+            );
+            const poster = await fetch(
+                `${running.origin}/assets/marketing/poster/skyline-sentinels.svg?size=500x750`
+            );
+            const episode = await fetch(
+                `${running.origin}/assets/marketing/episode/skyline-sentinels-episode-1.png?size=600x338`
+            );
+            const fallback = await fetch(
+                `${running.origin}/assets/marketing/logo/aurora-news.svg?size=256x256`
+            );
+
+            expect(poster.status).toBe(200);
+            expect(poster.headers.get('content-type')).toContain('image/png');
+            expect(
+                Buffer.from(await poster.arrayBuffer()).equals(
+                    readFileSync(
+                        join(marketingRoot, 'poster', 'skyline-sentinels.png')
+                    )
+                )
+            ).toBe(true);
+            expect(episode.headers.get('content-type')).toContain('image/png');
+            expect(
+                Buffer.from(await episode.arrayBuffer()).equals(
+                    readFileSync(
+                        join(
+                            marketingRoot,
+                            'episode',
+                            'skyline-sentinels-episode-1.png'
+                        )
+                    )
+                )
+            ).toBe(true);
+            expect(fallback.headers.get('content-type')).toContain(
+                'image/svg+xml'
+            );
+            expect(await fallback.text()).toContain('<svg');
         } finally {
             await running.close();
         }

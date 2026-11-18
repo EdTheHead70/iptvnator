@@ -34,7 +34,7 @@
     </ng-template>
 
     <ng-template appDetailActions>
-        @if (canPlayInline() && !playbackActive()) {
+        @if (canStartPlayback() && !playbackActive()) {
             <app-detail-action-button
                 [label]="'XTREAM.PLAY' | translate"
                 [meta]="runtimeLabel()"

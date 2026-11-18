@@ -91,6 +91,7 @@
                     (channel?.name || 'CHANNELS.UNNAMED_CHANNEL' | translate)
                 "
                 [logo]="getLogoForChannel(channel)"
+                [logoFallback]="getPlaylistLogoForChannel(channel)"
                 [showEpg]="shouldShowEpg()"
                 [showDetailsContextMenu]="true"
                 [isRadio]="channel?.radio === 'true'"
@@ -108,7 +109,7 @@
                 (activated)="onChannelActivate(channel)"
                 (keyboardActivated)="channelPlaybackRequested.emit(channel)"
                 (contextMenuRequested)="onChannelContextMenu(channel, $event)"
-                [selected]="activeChannelUrl() === channel?.url"
+                [selected]="isChannelActive(channel)"
                 [showFavoriteButton]="true"
                 [isFavorite]="favoriteIds().has(channel?.url ?? '')"
                 (favoriteToggled)="onFavoriteToggle(channel, $event)"

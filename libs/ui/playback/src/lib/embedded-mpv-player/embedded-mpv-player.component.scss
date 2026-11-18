@@ -28,7 +28,7 @@
         var(--app-on-surface) 45%,
         transparent
     );
-    --embedded-mpv-controls-height: 64px;
+    --embedded-mpv-controls-height: 88px;
 
     position: relative;
     display: block;
@@ -216,8 +216,9 @@
     gap: 16px;
     align-items: center;
     align-content: center;
+    box-sizing: border-box;
     min-height: var(--embedded-mpv-controls-height);
-    padding: 8px 16px 10px;
+    padding: 28px 16px 8px;
     opacity: 0;
     pointer-events: none;
     transform: translateY(8px);
@@ -507,7 +508,7 @@
 
 @media (max-width: 720px) {
     .embedded-mpv-player {
-        --embedded-mpv-controls-height: 88px;
+        --embedded-mpv-controls-height: 112px;
     }
 
     .embedded-mpv-player__controls {
@@ -523,4 +524,36 @@
     .embedded-mpv-player__volume-inline .embedded-mpv-player__slider--volume {
         width: 96px;
     }
+}
+
+// Reserved space keeps help below the native view without resizing on hover.
+.embedded-mpv-player__dock-label {
+    position: absolute;
+    top: 4px;
+    left: 16px;
+    right: 16px;
+    height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--app-on-surface);
+    pointer-events: none;
+}
+
+.embedded-mpv-player__stopped {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2;
+}
+
+.embedded-mpv-player__stopped-play {
+    width: 64px;
+    height: 64px;
+    color: var(--embedded-mpv-text);
+    background: rgba(0, 0, 0, 0.55);
 }

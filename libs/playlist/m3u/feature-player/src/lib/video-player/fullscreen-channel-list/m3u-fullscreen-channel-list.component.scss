@@ -11,13 +11,13 @@
     min-height: 0;
 }
 
-// One compact segmented control: four equal icon segments, labels in the
+// One compact segmented control: equal icon segments, labels in the
 // tooltip and aria-label. It replaces the per-view headers the container
 // draws in the sidebar (`compact` mode), so the row is the only chrome
 // between the search field and the first channel.
 .m3u-fullscreen-channel-list__views {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 2px;
     flex-shrink: 0;
     margin: 8px 12px;

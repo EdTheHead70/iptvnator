@@ -1,6 +1,6 @@
 @if (channelsLoading()) {
     <app-channel-list-loading-state
-        [view]="activeView()"
+        [view]="renderView()"
         [showEpg]="shouldShowEpg()"
         [showHeader]="!compact()"
     />
@@ -8,7 +8,7 @@
     @if (
         !compact() &&
         viewTitle() &&
-        activeView() !== 'groups' &&
+        renderView() !== 'groups' &&
         activeView() !== 'all'
     ) {
         <header class="context-header">
@@ -19,7 +19,7 @@
         <div class="context-divider"></div>
     }
 
-    @switch (activeView()) {
+    @switch (renderView()) {
         @case ('all') {
             <app-all-channels-view
                 [channels]="displayedChannels()"
@@ -27,11 +27,12 @@
                 [showHeader]="!compact()"
                 [channelEpgMap]="channelEpgMap()"
                 [channelIconMap]="channelIconMap()"
+                [preferEpgIcons]="preferEpgIcons()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
                 [openOnDoubleClick]="openStreamOnDoubleClick()"
                 [itemSize]="itemSize()"
-                [activeChannelUrl]="activeChannelUrl()"
+                [activeChannel]="activeChannel()"
                 [favoriteIds]="favoriteIds()"
                 (channelSelected)="onChannelSelected($event)"
                 (channelPlaybackRequested)="onChannelPlaybackRequested($event)"
@@ -41,15 +42,19 @@
         }
         @case ('groups') {
             <app-groups-view
+                [titleKey]="viewTitle()"
+                [probePlaylistHeaders]="activePlaylist()"
                 [groupedChannels]="groupedChannels()"
                 [searchTerm]="workspaceSearchTerm()"
                 [showHeader]="!compact()"
                 [compact]="compact()"
                 [channelEpgMap]="channelEpgMap()"
                 [channelIconMap]="channelIconMap()"
+                [preferEpgIcons]="preferEpgIcons()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
                 [openOnDoubleClick]="openStreamOnDoubleClick()"
+                [activeChannel]="activeChannel()"
                 [activeChannelUrl]="activeChannelUrl()"
                 [favoriteIds]="favoriteIds()"
                 [hiddenGroupTitles]="hiddenGroupTitles()"
@@ -78,10 +83,11 @@
                     [searchTerm]="workspaceSearchTerm()"
                     [channelEpgMap]="channelEpgMap()"
                     [channelIconMap]="channelIconMap()"
+                    [preferEpgIcons]="preferEpgIcons()"
                     [progressTick]="progressTick()"
                     [shouldShowEpg]="shouldShowEpg()"
                     [openOnDoubleClick]="openStreamOnDoubleClick()"
-                    [activeChannelUrl]="activeChannelUrl()"
+                    [activeChannel]="activeChannel()"
                     (channelSelected)="onChannelSelected($event)"
                     (channelPlaybackRequested)="
                         onChannelPlaybackRequested($event)
@@ -97,10 +103,11 @@
                 [searchTerm]="workspaceSearchTerm()"
                 [channelEpgMap]="channelEpgMap()"
                 [channelIconMap]="channelIconMap()"
+                [preferEpgIcons]="preferEpgIcons()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
                 [openOnDoubleClick]="openStreamOnDoubleClick()"
-                [activeChannelUrl]="activeChannelUrl()"
+                [activeChannel]="activeChannel()"
                 (channelSelected)="onChannelSelected($event)"
                 (channelPlaybackRequested)="onChannelPlaybackRequested($event)"
                 (removeRecent)="removeRecentChannel($event)"

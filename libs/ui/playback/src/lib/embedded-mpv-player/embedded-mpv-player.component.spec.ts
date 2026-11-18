@@ -120,6 +120,32 @@ describe('EmbeddedMpvPlayerComponent series navigation', () => {
         fixture.destroy();
     });
 
+    it('stops playback into a restartable state', () => {
+        const stopButton = fixture.debugElement.query(
+            By.css('[data-test-id="embedded-mpv-stop"]')
+        );
+        expect(stopButton).not.toBeNull();
+        expect(stopButton.nativeElement.disabled).toBe(false);
+
+        stopButton.nativeElement.click();
+        fixture.detectChanges();
+
+        expect(player.isStopped()).toBe(true);
+        expect(
+            fixture.debugElement.query(
+                By.css('[data-test-id="embedded-mpv-stopped"]')
+            )
+        ).not.toBeNull();
+        expect(stopButton.nativeElement.disabled).toBe(true);
+
+        fixture.debugElement
+            .query(By.css('[data-test-id="embedded-mpv-stopped"] button'))
+            .nativeElement.click();
+        fixture.detectChanges();
+
+        expect(player.isStopped()).toBe(false);
+    });
+
     it('renders previous and next episode controls with season boundary disabled state', () => {
         const previousButton = fixture.debugElement.query(
             By.css('[data-test-id="embedded-mpv-previous-episode"]')

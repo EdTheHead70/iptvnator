@@ -23,6 +23,24 @@ describe('SettingsPlaybackSectionComponent', () => {
     const queryByTestId = (testId: string): Element | null =>
         fixture.nativeElement.querySelector(`[data-test-id="${testId}"]`);
 
+    it('keeps a saved unavailable Embedded MPV choice visible and disabled', async () => {
+        fixture.componentRef.setInput(
+            'form',
+            createForm(VideoPlayer.EmbeddedMpv)
+        );
+        fixture.detectChanges();
+        expect(fixture.componentInstance.displayPlayers).toContainEqual({
+            id: VideoPlayer.EmbeddedMpv,
+            labelKey: 'SETTINGS.PLAYER_EMBEDDED_MPV',
+            disabled: true,
+        });
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(queryByTestId('select-video-player')?.textContent).toContain(
+            'SETTINGS.PLAYER_EMBEDDED_MPV'
+        );
+    });
+
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [

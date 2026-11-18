@@ -1,5 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { TmdbEnrichmentService, TmdbMovieDetails } from '@iptvnator/services';
+import {
+    TmdbEnrichmentService,
+    TmdbMovieDetails,
+    TmdbTvDetails,
+    unifiedTvCast,
+} from '@iptvnator/services';
+import { getM3uContentType } from '@iptvnator/shared/m3u-utils';
 import { Channel, releaseTagYear } from '@iptvnator/shared/interfaces';
 
 export type M3uVodMetadataStatus = 'idle' | 'loading' | 'matched' | 'none';
@@ -14,7 +20,7 @@ export interface M3uVodMetadataState {
      */
     lookupKey: string | null;
     status: M3uVodMetadataStatus;
-    details: TmdbMovieDetails | null;
+    details: (TmdbMovieDetails & Partial<TmdbTvDetails>) | null;
 }
 
 const IDLE_STATE: M3uVodMetadataState = {
@@ -53,7 +59,7 @@ export class M3uVodMetadataService {
      * while a request is in flight makes the stale resolution a no-op —
      * only the response for the channel the state currently tracks lands.
      */
-    load(channel: Pick<Channel, 'id' | 'name'>): void {
+    load(channel: Pick<Channel, 'id' | 'name' | 'type' | 'raw'>): void {
         const lookupKey = m3uVodEntryKey(channel);
         if (this.stateSignal().lookupKey === lookupKey) {
             return;
@@ -68,22 +74,47 @@ export class M3uVodMetadataService {
 
         // `releaseTagYear` reads only bracketed/trailing release TAGS, never
         // a year that is part of the film's name ("2001: A Space Odyssey").
-        void this.tmdb
-            .enrichMovie({
-                title: channel.name,
-                year: releaseTagYear(channel.name),
-            })
-            .then(
-                (details) => this.settle(lookupKey, details),
-                () => this.settle(lookupKey, null)
-            );
+        const series = getM3uContentType(channel) === 'series';
+        // Episode labels identify streams; TMDB searches for the parent show.
+        const title = series
+            ? channel.name
+                  .replace(
+                      /(?:^|[\s._-])(?:s\d{1,2}[\s._-]*e\d{1,3}|\d{1,2}x\d{2,3})(?:\b|$).*$/i,
+                      ''
+                  )
+                  .trim() || channel.name
+            : channel.name;
+        const query = { title, year: releaseTagYear(channel.name) };
+        const request = series
+            ? this.tmdb.enrichTv(query).then((details) =>
+                  details
+                      ? {
+                            ...details,
+                            title: details.name,
+                            release_date: details.first_air_date,
+                            runtime: details.episode_run_time?.[0],
+                            credits: {
+                                ...details.credits,
+                                cast: unifiedTvCast(details),
+                            },
+                        }
+                      : null
+              )
+            : this.tmdb.enrichMovie(query);
+        void request.then(
+            (details) => this.settle(lookupKey, details),
+            () => this.settle(lookupKey, null)
+        );
     }
 
     reset(): void {
         this.stateSignal.set(IDLE_STATE);
     }
 
-    private settle(lookupKey: string, details: TmdbMovieDetails | null): void {
+    private settle(
+        lookupKey: string,
+        details: (TmdbMovieDetails & Partial<TmdbTvDetails>) | null
+    ): void {
         if (this.stateSignal().lookupKey !== lookupKey) {
             return;
         }

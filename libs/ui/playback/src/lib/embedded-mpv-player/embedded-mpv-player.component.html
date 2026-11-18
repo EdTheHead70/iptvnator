@@ -32,7 +32,24 @@
                 data-embedded-mpv-frame
             ></canvas>
         }
-        @if (isErrored() || isReconnecting() || isLiveEnded()) {
+        @if (isStopped()) {
+            <div
+                class="embedded-mpv-player__stopped"
+                data-test-id="embedded-mpv-stopped"
+            >
+                <button
+                    mat-icon-button
+                    type="button"
+                    class="embedded-mpv-player__stopped-play"
+                    (click)="resumePlayback()"
+                    [attr.aria-label]="'EMBEDDED_MPV.PLAYER.PLAY' | translate"
+                    [matTooltip]="'EMBEDDED_MPV.PLAYER.PLAY' | translate"
+                    [matTooltipDisabled]="true"
+                >
+                    <mat-icon>play_arrow</mat-icon>
+                </button>
+            </div>
+        } @else if (isErrored() || isReconnecting() || isLiveEnded()) {
             <div
                 class="embedded-mpv-player__stalled"
                 role="alert"
@@ -118,6 +135,8 @@
 
     @if (!isFrameCopyEngine() && showControls() && isSupported()) {
         <div
+            appEmbeddedMpvDockLabel
+            #dockLabel="embeddedMpvDockLabel"
             class="embedded-mpv-player__controls"
             [class.embedded-mpv-player__controls--visible]="
                 controlsAreVisible()
@@ -126,6 +145,12 @@
                 dockPanels.active() !== null
             "
         >
+            <span
+                class="embedded-mpv-player__dock-label"
+                aria-hidden="true"
+                data-test-id="embedded-mpv-dock-label"
+                >{{ dockLabel.label() }}</span
+            >
             @if (dockPanels.active(); as dockPanel) {
                 <app-embedded-mpv-dock-panel
                     [panel]="dockPanel"
@@ -142,21 +167,21 @@
                         [disabled]="isLoading()"
                         (click)="togglePaused()"
                         [attr.aria-label]="
-                            (isPaused()
+                            (showPlayIcon()
                                 ? 'EMBEDDED_MPV.PLAYER.PLAY'
                                 : 'EMBEDDED_MPV.PLAYER.PAUSE'
                             ) | translate
                         "
                         [matTooltip]="
-                            (isPaused()
+                            (showPlayIcon()
                                 ? 'EMBEDDED_MPV.PLAYER.PLAY'
                                 : 'EMBEDDED_MPV.PLAYER.PAUSE'
                             ) | translate
                         "
-                        matTooltipPosition="above"
+                        [matTooltipDisabled]="true"
                     >
                         <mat-icon>{{
-                            isPaused() ? 'play_arrow' : 'pause'
+                            showPlayIcon() ? 'play_arrow' : 'pause'
                         }}</mat-icon>
                     </button>
 
@@ -179,6 +204,22 @@
                         </button>
                     }
 
+                    <button
+                        mat-icon-button
+                        type="button"
+                        class="embedded-mpv-player__control-button"
+                        data-test-id="embedded-mpv-stop"
+                        [disabled]="!canStop()"
+                        (click)="stop()"
+                        [attr.aria-label]="
+                            'EMBEDDED_MPV.PLAYER.STOP' | translate
+                        "
+                        [matTooltip]="'EMBEDDED_MPV.PLAYER.STOP' | translate"
+                        [matTooltipDisabled]="true"
+                    >
+                        <mat-icon>stop</mat-icon>
+                    </button>
+
                     @if (showSeriesNavigation()) {
                         <button
                             mat-icon-button
@@ -195,7 +236,7 @@
                                 'EMBEDDED_MPV.PLAYER.PREVIOUS_EPISODE'
                                     | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>skip_previous</mat-icon>
                         </button>
@@ -213,7 +254,7 @@
                             [matTooltip]="
                                 'EMBEDDED_MPV.PLAYER.NEXT_EPISODE' | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>skip_next</mat-icon>
                         </button>
@@ -231,7 +272,7 @@
                         [matTooltip]="
                             'EMBEDDED_MPV.PLAYER.BACK_10_SECONDS' | translate
                         "
-                        matTooltipPosition="above"
+                        [matTooltipDisabled]="true"
                     >
                         <mat-icon>replay_10</mat-icon>
                     </button>
@@ -248,7 +289,7 @@
                         [matTooltip]="
                             'EMBEDDED_MPV.PLAYER.FORWARD_10_SECONDS' | translate
                         "
-                        matTooltipPosition="above"
+                        [matTooltipDisabled]="true"
                     >
                         <mat-icon>forward_10</mat-icon>
                     </button>
@@ -297,7 +338,9 @@
                                     class="embedded-mpv-player__live-dot"
                                     aria-hidden="true"
                                 ></span>
-                                {{ 'EMBEDDED_MPV.PLAYER.LIVE_BADGE' | translate }}
+                                {{
+                                    'EMBEDDED_MPV.PLAYER.LIVE_BADGE' | translate
+                                }}
                             </span>
                         } @else {
                             <span
@@ -354,7 +397,7 @@
                                     : 'EMBEDDED_MPV.PLAYER.MUTE'
                                 ) | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>{{ volumeIcon() }}</mat-icon>
                         </button>
@@ -400,7 +443,7 @@
                             [matTooltip]="
                                 'EMBEDDED_MPV.PLAYER.AUDIO_TRACKS' | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>graphic_eq</mat-icon>
                         </button>
@@ -420,7 +463,7 @@
                             [matTooltip]="
                                 'EMBEDDED_MPV.PLAYER.SUBTITLES' | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>{{
                                 selectedSubtitleTrackId() === null
@@ -453,7 +496,7 @@
                                               ),
                                           }
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>speed</mat-icon>
                         </button>
@@ -482,7 +525,7 @@
                                               ),
                                           }
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>aspect_ratio</mat-icon>
                         </button>
@@ -511,7 +554,7 @@
                                     : 'EMBEDDED_MPV.PLAYER.START_RECORDING'
                                 ) | translate
                             "
-                            matTooltipPosition="above"
+                            [matTooltipDisabled]="true"
                         >
                             <mat-icon>{{
                                 isRecording()
@@ -529,7 +572,7 @@
                         (click)="toggleFullscreen()"
                         [attr.aria-label]="fullscreenLabel()"
                         [matTooltip]="fullscreenLabel()"
-                        matTooltipPosition="above"
+                        [matTooltipDisabled]="true"
                     >
                         <mat-icon>{{
                             isFullscreen() ? 'fullscreen_exit' : 'fullscreen'

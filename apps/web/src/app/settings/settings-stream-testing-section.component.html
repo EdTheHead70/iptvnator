@@ -1,0 +1,169 @@
+@if (probeAvailable && form().get('streamTesting')) {
+    <section
+        class="settings-section"
+        [formGroup]="form()"
+        data-test-id="stream-testing-settings"
+    >
+        <div class="settings-section__header">
+            <h3>{{ 'SETTINGS.STREAM_TESTING' | translate }}</h3>
+            <p>{{ 'SETTINGS.STREAM_TESTING_HELP' | translate }}</p>
+        </div>
+        <div class="settings-card" formGroupName="streamTesting">
+            <div
+                class="setting-item"
+                data-setting-id="stream-testing-concurrency"
+            >
+                <div class="setting-item__meta">
+                    <h4 id="probe-concurrency-label">
+                        {{ 'SETTINGS.STREAM_TESTING_PARALLEL' | translate }}
+                    </h4>
+                </div>
+                <div class="setting-item__control">
+                    <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="settings-select"
+                    >
+                        <input
+                            matInput
+                            type="number"
+                            formControlName="concurrency"
+                            min="1"
+                            max="8"
+                            step="1"
+                            aria-labelledby="probe-concurrency-label"
+                            data-test-id="probe-concurrency"
+                        />
+                        <mat-error>{{
+                            'SETTINGS.STREAM_TESTING_INVALID' | translate
+                        }}</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+            <div
+                class="setting-item"
+                data-setting-id="stream-testing-timeoutSeconds"
+            >
+                <div class="setting-item__meta">
+                    <h4 id="probe-timeoutSeconds-label">
+                        {{ 'SETTINGS.STREAM_TESTING_TIMEOUT' | translate }}
+                    </h4>
+                </div>
+                <div class="setting-item__control">
+                    <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="settings-select"
+                    >
+                        <input
+                            matInput
+                            type="number"
+                            formControlName="timeoutSeconds"
+                            min="1"
+                            max="60"
+                            step="1"
+                            aria-labelledby="probe-timeoutSeconds-label"
+                            data-test-id="probe-timeoutSeconds"
+                        />
+                        <mat-error>{{
+                            'SETTINGS.STREAM_TESTING_INVALID' | translate
+                        }}</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+            <div class="setting-item" data-setting-id="stream-testing-method">
+                <div class="setting-item__meta">
+                    <h4 id="probe-method-label">
+                        {{ 'SETTINGS.STREAM_TESTING_METHOD' | translate }}
+                    </h4>
+                </div>
+                <div class="setting-item__control">
+                    <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="settings-select"
+                    >
+                        <mat-select
+                            formControlName="method"
+                            aria-labelledby="probe-method-label"
+                            data-test-id="probe-method"
+                            ><mat-option value="HEAD">HEAD</mat-option
+                            ><mat-option value="GET"
+                                >GET</mat-option
+                            ></mat-select
+                        >
+                    </mat-form-field>
+                </div>
+            </div>
+            <div class="setting-item" data-setting-id="stream-testing-fallback">
+                <div class="setting-item__meta">
+                    <h4 id="probe-fallback-label">
+                        {{ 'SETTINGS.STREAM_TESTING_FALLBACK' | translate }}
+                    </h4>
+                </div>
+                <mat-slide-toggle
+                    formControlName="headFallback"
+                    aria-labelledby="probe-fallback-label"
+                    data-test-id="probe-headFallback"
+                />
+            </div>
+            <div class="setting-item" data-setting-id="stream-testing-size">
+                <div class="setting-item__meta">
+                    <h4 id="probe-size-label">
+                        {{ 'SETTINGS.STREAM_TESTING_SIZE' | translate }}
+                    </h4>
+                </div>
+                <div class="setting-item__control">
+                    <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="settings-select"
+                    >
+                        <mat-select
+                            formControlName="rangeBytes"
+                            aria-labelledby="probe-size-label"
+                            data-test-id="probe-rangeBytes"
+                        >
+                            @for (bytes of rangeSizes; track bytes) {
+                                <mat-option [value]="bytes"
+                                    >{{ bytes / 1024 }} KiB</mat-option
+                                >
+                            }
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            </div>
+            <div
+                class="setting-item"
+                data-setting-id="stream-testing-cacheSeconds"
+            >
+                <div class="setting-item__meta">
+                    <h4 id="probe-cacheSeconds-label">
+                        {{ 'SETTINGS.STREAM_TESTING_CACHE' | translate }}
+                    </h4>
+                </div>
+                <div class="setting-item__control">
+                    <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="settings-select"
+                    >
+                        <input
+                            matInput
+                            type="number"
+                            formControlName="cacheSeconds"
+                            min="0"
+                            max="3600"
+                            step="1"
+                            aria-labelledby="probe-cacheSeconds-label"
+                            data-test-id="probe-cacheSeconds"
+                        />
+                        <mat-error>{{
+                            'SETTINGS.STREAM_TESTING_INVALID' | translate
+                        }}</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+        </div>
+    </section>
+}

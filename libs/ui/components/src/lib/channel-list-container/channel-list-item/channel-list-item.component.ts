@@ -38,11 +38,20 @@ import { favoriteIcon } from '../../app-icons/app-icons';
 export class ChannelListItemComponent {
     private readonly programmeDialog = inject(EpgProgrammeDialogService);
     private readonly logoFailed = signal(false);
+    private readonly fallbackActive = signal(false);
+    readonly currentLogo = computed(() => {
+        const primary = this.logo() ?? '';
+        const fallback = this.logoFallback()?.trim() ?? '';
+        if (!primary) return fallback;
+        return this.fallbackActive() && fallback ? fallback : primary;
+    });
     private readonly settingsStore = inject(SettingsStore);
     readonly epgOffsetMinutes = this.settingsStore.resolvedEpgOffsetMinutes;
 
     readonly isDraggable = input(false);
     readonly logo = input<string | null | undefined>('');
+    /** Playlist logo used when the preferred (EPG) logo fails to load. */
+    readonly logoFallback = input<string | null | undefined>('');
     readonly name = input('');
     readonly disabled = input(false);
     readonly statusLabel = input('');
@@ -91,7 +100,9 @@ export class ChannelListItemComponent {
     constructor() {
         effect(() => {
             this.logo();
+            this.logoFallback();
             this.logoFailed.set(false);
+            this.fallbackActive.set(false);
         });
     }
 
@@ -160,10 +171,15 @@ export class ChannelListItemComponent {
     }
 
     showLogoFallback(): boolean {
-        return !this.logo() || this.logoFailed();
+        return !this.currentLogo() || this.logoFailed();
     }
 
     onLogoError(event: Event): void {
+        const fallback = this.logoFallback()?.trim() ?? '';
+        if (fallback && !this.fallbackActive() && fallback !== this.logo()) {
+            this.fallbackActive.set(true);
+            return;
+        }
         this.logoFailed.set(true);
         (event.target as HTMLImageElement | null)?.style.setProperty(
             'display',

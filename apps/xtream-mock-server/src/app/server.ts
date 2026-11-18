@@ -11,10 +11,7 @@ import express, {
 import { installLiveFormatFixture } from './live-format-fixture.js';
 import { resolveXtreamMockPortString } from './mock-port.js';
 import { resetAccount, resetAll } from './data-store.js';
-import {
-    resetDroppingEpisodes,
-    streamDroppingEpisode,
-} from './dropping-episode.js';
+import { streamDroppingEpisode } from './dropping-episode.js';
 import { renderMarketingAssetSvg } from './generators/marketing.generator.js';
 import { installPerformanceControlRoutes } from './performance-control-routes.js';
 import {
@@ -118,10 +115,8 @@ export function createXtreamMockApp(
                 return;
             }
             resetAccount(username, password);
-            resetDroppingEpisodes(username, password);
         } else {
             resetAll();
-            resetDroppingEpisodes();
         }
         response.json({ status: 'reset' });
     });

@@ -8,6 +8,8 @@ export interface Channel {
     id: string;
     url: string;
     name: string;
+    /** Standalone EXTINF content type; absent entries belong to Live TV. */
+    type?: string;
     group: {
         title: string;
     };

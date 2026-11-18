@@ -1,4 +1,5 @@
 import type { HostedServerCommand, HostedServerStatus } from './hosted-server.interface';
+import type { StreamProbeRequestOptions } from './stream-testing-settings';
 export type ElectronBridgeAppMenuAction = 'settings' | 'check-for-updates';
 import type { AppUpdateChannel } from './app-update-channel.util';
 import type { SourceProbeContext, SourceHealthResult } from './source-health';
@@ -1052,7 +1053,8 @@ export interface ElectronBridgeApi {
         url: string,
         method?: 'GET' | 'HEAD',
         /** Playback headers the owning playlist requires, when it has any. */
-        headers?: StreamProbeHeaders
+        headers?: StreamProbeHeaders,
+        options?: StreamProbeRequestOptions
     ) => Promise<ElectronBridgeXtreamProbeResult>;
     refreshPlaylist: (
         payload: PlaylistRefreshPayload
