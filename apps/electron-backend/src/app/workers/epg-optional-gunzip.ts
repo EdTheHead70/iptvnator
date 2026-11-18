@@ -32,7 +32,12 @@ export function createOptionalEpgGunzip(): Duplex {
     const output = new PassThrough();
     // Joining both ends makes decoder errors/consumer closure interrupt even
     // an outstanding prefix/body read, rather than waiting for the next chunk.
-    const stage = Duplex.from({ writable: input, readable: output });
+    // @types/node 26 narrows the Duplex.from() overload to web-stream pairs;
+    // Node still accepts a Node writable/readable pair here at runtime.
+    const stage = Duplex.from({
+        writable: input,
+        readable: output,
+    } as unknown as Duplex);
     void decodeRemainingFile(input, output).catch((error: Error) => {
         stage.destroy(error);
     });

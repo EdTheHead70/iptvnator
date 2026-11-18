@@ -7,6 +7,9 @@ import { redactSensitiveData } from '@iptvnator/shared/logging';
 
 type HttpServerFactory = (requestListener: http.RequestListener) => http.Server;
 
+/** The subset of `path` this resolver needs; also matches `path.posix`/`path.win32`. */
+type PathImplementation = Pick<typeof path, 'resolve' | 'sep'>;
+
 interface HttpServerOptions {
     createServer?: HttpServerFactory;
     distPath?: string;
@@ -19,7 +22,7 @@ interface HttpServerOptions {
 export function resolveStaticFilePath(
     staticRoot: string,
     requestTarget: string,
-    pathImplementation: path.PlatformPath = path
+    pathImplementation: PathImplementation = path
 ): string | null {
     const separatorIndex = requestTarget.search(/[?#]/);
     const encodedPathname =

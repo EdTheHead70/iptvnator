@@ -191,7 +191,9 @@ export class DatabaseWorkerClient {
         });
         currentWorker.on('error', (error) => {
             if (this.worker === currentWorker) {
-                this.handleWorkerFailure(error);
+                this.handleWorkerFailure(
+                    error instanceof Error ? error : new Error(String(error))
+                );
             }
         });
         currentWorker.on('exit', (code) => {

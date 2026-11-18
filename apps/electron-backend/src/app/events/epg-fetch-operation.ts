@@ -259,12 +259,9 @@ export function runEpgFetch(
         worker.on('error', (error) => {
             if (settled || cancelIfRetired()) return;
             epgLogger.error(context.loggerLabel, 'Worker error event:', error);
-            context.sendProgressToRenderer(
-                url,
-                'error',
-                undefined,
-                error.message
-            );
+            const message =
+                error instanceof Error ? error.message : String(error);
+            context.sendProgressToRenderer(url, 'error', undefined, message);
             context.workers.delete(url);
             settle(() => {
                 void context.runtime

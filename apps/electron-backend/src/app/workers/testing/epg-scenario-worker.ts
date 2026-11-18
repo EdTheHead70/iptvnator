@@ -126,7 +126,8 @@ export async function runScenarioWorker(
                 }
             });
             worker.on('error', (error) => {
-                workerError = error.message;
+                workerError =
+                    error instanceof Error ? error.message : String(error);
                 finish('WORKER_ERROR');
             });
             worker.on('exit', () => finish('WORKER_EXIT'));
