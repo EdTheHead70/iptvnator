@@ -56,7 +56,7 @@ patchedDependencies:
     'app-builder-lib@26.15.7': 'patches/app-builder-lib@26.15.7.patch'
     'mpegts.js@1.8.2': 'patches/mpegts.js@1.8.2.patch'
     'vite@8.3.5': 'patches/vite@8.3.5.patch'
-    '@angular/service-worker@22.2.2': 'patches/@angular__service-worker@22.2.2.patch'
+    '@angular/service-worker@22.2.6': 'patches/@angular__service-worker@22.2.6.patch'
 
 allowBuilds:
     '@parcel/watcher': false
@@ -86,7 +86,7 @@ packageExtensions:
 # Covered by executor/package tests and the historical IndexedDB v1 E2E.
 peerDependencyRules:
     allowedVersions:
-        'nx-electron@22.0.0>@nx/devkit': '24.0.4'
-        'nx-electron@22.0.0>@nx/workspace': '24.0.4'
+        'nx-electron@22.0.0>@nx/devkit': '24.0.6'
+        'nx-electron@22.0.0>@nx/workspace': '24.0.6'
         'ngx-indexed-db@22.0.0>@angular/common': '22.1.6'
         'ngx-indexed-db@22.0.0>@angular/core': '22.1.6'
