@@ -120,6 +120,7 @@ const jsonLd = [
 </BaseLayout>
 
 <style>
+  @reference "../../styles/global.css";
   /* Clip horizontal decoration without creating a scroll container for the topic nav. */
   :global(main:has(.guide-group)) {
     overflow-x: clip;
@@ -130,7 +131,7 @@ const jsonLd = [
   .guide-link:focus-visible,
   .topic-link:focus-visible,
   .guide-article:focus-visible {
-    outline: 2px solid theme('colors.accent.400');
+    outline: 2px solid #38c4c4;
     outline-offset: 4px;
   }
   @media (prefers-reduced-motion: reduce) {
