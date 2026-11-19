@@ -8,6 +8,14 @@ export default [
     {
         files: ['**/*.ts'],
         rules: {
+            '@typescript-eslint/no-unused-vars': [
+                'warn',
+                {
+                    argsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                },
+            ],
             '@angular-eslint/directive-selector': [
                 'error',
                 {
@@ -24,6 +32,13 @@ export default [
                     style: 'kebab-case',
                 },
             ],
+        },
+    },
+    {
+        files: ['**/*.spec.ts', '**/*.test.ts'],
+        rules: {
+            // Tests use non-null assertions to narrow fixtures after setup.
+            '@typescript-eslint/no-non-null-assertion': 'off',
         },
     },
     {

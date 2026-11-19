@@ -1,5 +1,4 @@
 import { FavoritesLocalOrder } from './favorites-local-order';
-import { extractStalkerItemType } from '@iptvnator/shared/interfaces';
 import { webcrypto } from 'node:crypto';
 import {
     playlistFavorite,

@@ -52,7 +52,6 @@ const playlist = {
 
 describe('favorites runtime consent and lifecycle', () => {
     const original = window.electron;
-    let runtime: FavoritesSyncRuntime;
     let request: jest.Mock<
         Promise<SourceServerResponse>,
         [SourceServerRequest]
@@ -65,7 +64,7 @@ describe('favorites runtime consent and lifecycle', () => {
         supportsFavoritesStorage: boolean;
         supportsXtreamSqliteDataSource: boolean;
     };
-    const create = () => (runtime = TestBed.inject(FavoritesSyncRuntime));
+    const create = () => TestBed.inject(FavoritesSyncRuntime);
     beforeEach(async () => {
         jest.useFakeTimers();
         localStorage.clear();
