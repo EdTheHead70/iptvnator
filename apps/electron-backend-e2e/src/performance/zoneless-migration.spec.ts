@@ -1,4 +1,3 @@
-/* eslint-disable playwright/expect-expect -- These are Node assertion-based repository contract tests. */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';

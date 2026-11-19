@@ -1,4 +1,3 @@
-/* eslint-disable playwright/expect-expect -- This is a Node assertion-based lifecycle test. */
 import { RENDERER_PERFORMANCE_PHASE_HOOK_KEY } from '@iptvnator/shared/logging';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';

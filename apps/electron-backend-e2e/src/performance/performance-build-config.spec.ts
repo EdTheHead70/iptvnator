@@ -1,4 +1,3 @@
-/* eslint-disable playwright/expect-expect -- These are Node assertion-based configuration contract tests. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';

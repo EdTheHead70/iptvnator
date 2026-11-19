@@ -1,4 +1,3 @@
-/* eslint-disable playwright/expect-expect -- These are Node assertion-based performance contract tests. */
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

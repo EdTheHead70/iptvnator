@@ -1,4 +1,3 @@
-/* eslint-disable playwright/expect-expect -- Node assertions define the loopback-only fixture server contract. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
