@@ -175,9 +175,9 @@ The renderer never gets direct native-module access. It can only call the preloa
 - subscribe to session updates
 
 Settings uses the preload support API as an availability and capability check.
-Unsupported paths return before loading the addon when platform, experiment
-gating, native artifacts, the packaged runtime manifest, the Linux helper
-probe, or the native-view `mpv` executable check fails. Support diagnostics
+Unsupported paths return before loading the addon when platform, native
+artifacts, the packaged runtime manifest, the Linux helper probe, or the
+native-view `mpv` executable check fails. Support diagnostics
 include a stable `frameCopyUnavailableReason`; it is tracing/support data, not
 user-facing copy. Supported paths load `embedded_mpv.node` so the renderer can
 receive capability flags from the actual addon binary. Avoid calling this
@@ -1485,13 +1485,18 @@ Electron’s own minimum macOS version still governs application support. The
 `NSOpenGLView` owns its context/drawable association; do not separately call
 the deprecated `NSOpenGLContext::setView:`.
 
-For local development before the vendored runtime exists, Homebrew can be used explicitly:
+For local development the normal serve command builds the addon with the
+Homebrew fallback when no vendored runtime is staged:
 
 ```bash
-pnpm run serve:backend:embedded-mpv
+brew install mpv
+pnpm run serve:backend
 ```
 
-That script first runs the local native build with `IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1`, then starts Electron with `IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT=1`. This path is intentionally macOS development-only. Packaged builds reject `homebrew-dev` manifests and macOS packages reject any `/opt/homebrew` or `/usr/local` embedded MPV links.
+`pnpm run serve:backend:embedded-mpv` remains a one-shot native build + serve
+helper. The Homebrew path is intentionally macOS development-only. Packaged
+builds reject `homebrew-dev` manifests and macOS packages reject any
+`/opt/homebrew` or `/usr/local` embedded MPV links.
 
 If the settings page does not show `Embedded MPV (Experimental)` after starting with those flags, check the native build output:
 
@@ -1643,7 +1648,7 @@ The feature is still experimental. The largest risks are native-process risks, n
   window-embedding dependency but still requires a working EGL probe
 - Homebrew `libmpv` builds can target a newer macOS version than IPTVnator's declared deployment target
 
-It is reasonable to ship the code in-tree behind the current experiment flag. It is not yet safe to make it the default player. It can be exposed as desktop experimental if support detection is strict, the UI clearly labels it experimental, and fallback to Video.js or external MPV/VLC stays available.
+The feature is enabled in desktop builds by default. It is still not yet safe to make it the default player. It can be exposed as desktop experimental if support detection is strict, the UI clearly labels it experimental, and fallback to Video.js or external MPV/VLC stays available.
 
 If an embedded session fails to initialize, the app should keep the user in control by preserving the normal player setting choices. If a native crash occurs, normal settings fallback cannot intercept that crash, so broader OS-specific smoke testing and packaged-app testing are required before broad release.
 

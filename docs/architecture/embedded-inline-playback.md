@@ -104,10 +104,9 @@ The repository now contains a first-pass native embedded MPV harness for Electro
 Current contract:
 
 - desktop only: macOS, Windows x64, and Linux x64 under X11/Xwayland
-- experimental opt-in
-- enabled in local development only when `IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT=1`
+- experimental desktop engine, enabled by default; it is not the default player
 - Linux Wayland sessions must start Electron through Xwayland, for example with `pnpm nx run electron-backend:serve-electron --args=--ozone-platform=x11` during local development or `iptvnator --ozone-platform=x11` for a packaged app
-- enabled in packaged desktop builds only when the bundled native addon/runtime prerequisites are present; Linux additionally requires an `mpv` executable on `PATH`
+- available when the bundled native addon/runtime prerequisites are present; Linux additionally requires an `mpv` executable on `PATH`
 - uses IPTVnator-owned controls and `ResolvedPortalPlayback` payloads
 - uses the libmpv render API on macOS and renders through an IPTVnator-owned native `NSView`
 - uses mpv `wid` embedding on Windows and Linux through IPTVnator-owned native child windows
@@ -131,9 +130,9 @@ Current limitation:
 - Windows and Linux use the mpv `wid` path and still need OS-native packaged smoke coverage before public exposure
 - Linux native Wayland is not supported in this implementation; the Electron process must have `DISPLAY` through X11/Xwayland and a real X11 window handle
 - the OpenGL render path avoids the old per-frame `CGImage` copy path, but it still needs broader interaction, resize, and packaging coverage
-- startup deadlocks seen during early macOS playback bring-up are mitigated, but the feature is still kept behind the explicit experiment flag until more interaction and packaging coverage is proven
+- startup deadlocks seen during early macOS playback bring-up are mitigated, but the engine remains experimental and support-gated until broader interaction and packaging coverage is proven
 - because of that, the setting is auto-sanitized back to the default inline player unless support detection reports that the experimental runtime is available
-- this follows the rollout gate: keep the native work in-tree, but do not leave it user-facing until playback, resize, focus, and packaging are stable
+- the engine is user-facing when support detection succeeds; continue to treat it as experimental until playback, resize, focus, and packaging are stable
 
 ## Android TV Native Playback Pilot
 

@@ -279,15 +279,10 @@ describe('EmbeddedMpvNativeService power blocker', () => {
         }
     });
 
-    it('requires the base embedded-MPV opt-in for unpackaged runs', () => {
+    it('enables embedded MPV for unpackaged runs without an opt-in', () => {
         appMock.isPackaged = false;
         delete process.env.IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT;
 
-        expect(service.getSupport()).toEqual(
-            expect.objectContaining({ supported: false })
-        );
-
-        process.env.IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT = '1';
         expect(service.getSupport()).toEqual(
             expect.objectContaining({ supported: true })
         );
