@@ -80,12 +80,13 @@
             }
         ],
         "category": "public.app-category.video",
-        "forceCodeSigning": true,
+        "forceCodeSigning": false,
         "gatekeeperAssess": false,
-        "hardenedRuntime": true,
+        "hardenedRuntime": false,
         "entitlements": "apps/electron-backend/macos/entitlements.mac.plist",
         "entitlementsInherit": "apps/electron-backend/macos/entitlements.mac.inherit.plist",
-        "notarize": true,
+        "notarize": false,
+        "identity": null,
         "icon": "apps/web/src/assets/icons/favicon.icns"
     },
     "linux": {
