@@ -297,6 +297,7 @@
         "vite": "8.3.8",
         "yaml": "2.9.1",
         "zod": "4.6.7",
-        "@tailwindcss/vite": "4.3.5"
+        "@tailwindcss/vite": "4.3.5",
+        "@tailwindcss/postcss": "4.3.5"
     }
 }
