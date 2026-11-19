@@ -90,12 +90,10 @@ export class SettingsSyncStatusComponent {
             ? new Date(timestamp).toISOString()
             : null;
     });
-    readonly formattedTime = computed(() =>
-        this.isoTime()
-            ? formatSyncTime(
-                  new Date(this.isoTime()!).getTime(),
-                  this.language()
-              )
-            : null
-    );
+    readonly formattedTime = computed(() => {
+        const isoTime = this.isoTime();
+        return isoTime
+            ? formatSyncTime(new Date(isoTime).getTime(), this.language())
+            : null;
+    });
 }

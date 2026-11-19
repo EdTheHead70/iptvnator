@@ -62,38 +62,41 @@ export class SettingsFavoritesSectionComponent {
             : `${ref.provider} · ${ref.kind} · ${ref.id}${ref.provider === 'stalker' && ref.mode ? ` · ${ref.mode}` : ''}`;
     }
     async toggle(change: { checked: boolean; source: { checked: boolean } }) {
-        await this.action(() => this.runtime()!.setEnabled(change.checked));
+        await this.action((runtime) => runtime.setEnabled(change.checked));
         change.source.checked = this.runtime()?.enabled() ?? false;
         this.preview.set(null);
     }
     async previewImport() {
-        await this.action(async () =>
-            this.preview.set(await this.runtime()!.previewImport())
+        await this.action(async (runtime) =>
+            this.preview.set(await runtime.previewImport())
         );
     }
     async importFavorites() {
-        await this.action(async () => {
-            this.unresolved.set(
-                await this.runtime()!.importFavorites(this.preview()!)
-            );
+        await this.action(async (runtime) => {
+            const preview = this.preview();
+            if (!preview) return;
+            this.unresolved.set(await runtime.importFavorites(preview));
             this.preview.set(null);
         });
     }
     async resolve(address: FavoriteAddress, local: boolean) {
-        await this.action(() => this.runtime()!.resolve(address, local));
+        await this.action((runtime) => runtime.resolve(address, local));
     }
     async parked(send: boolean) {
-        await this.action(() => this.runtime()!.parked(send));
+        await this.action((runtime) => runtime.parked(send));
     }
     async refresh() {
-        await this.action(() => this.runtime()!.refresh());
+        await this.action((runtime) => runtime.refresh());
     }
-    private async action(run: () => Promise<unknown>) {
-        if (this.busy() || !this.runtime()) return;
+    private async action(
+        run: (runtime: FavoritesSyncRuntime) => Promise<unknown>
+    ) {
+        const runtime = this.runtime();
+        if (this.busy() || !runtime) return;
         this.busy.set(true);
         this.failed.set(false);
         try {
-            await run();
+            await run(runtime);
         } catch {
             this.failed.set(true);
         } finally {

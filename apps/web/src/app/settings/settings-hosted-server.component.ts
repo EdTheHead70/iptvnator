@@ -81,10 +81,18 @@ export class SettingsHostedServerComponent {
             });
     }
 
+    private requireHostedServerControl() {
+        const control = window.electron?.hostedServerControl;
+        if (!control) {
+            throw new Error('Hosted server control unavailable');
+        }
+        return control;
+    }
+
     private async readStatus(): Promise<void> {
         const transition = this.transition;
         try {
-            const status = await window.electron.hostedServerControl!('status');
+            const status = await this.requireHostedServerControl()('status');
             if (transition !== this.transition) return;
             this.status.set(status);
             if (status.state !== 'running') this.code.set('');
@@ -108,9 +116,7 @@ export class SettingsHostedServerComponent {
             error: undefined,
         }));
         try {
-            this.status.set(
-                await window.electron.hostedServerControl!(command)
-            );
+            this.status.set(await this.requireHostedServerControl()(command));
         } catch {
             this.status.set({ state: 'error', error: 'startup' });
         } finally {
@@ -140,7 +146,11 @@ export class SettingsHostedServerComponent {
             return;
         }
         try {
-            this.code.set(await window.electron.hostedServerAccessCode!());
+            const accessCode = window.electron.hostedServerAccessCode;
+            if (!accessCode) {
+                throw new Error('Hosted server access code unavailable');
+            }
+            this.code.set(await accessCode());
         } catch {
             this.feedback.set('HOSTED_SERVER.CODE_FAILED');
         }

@@ -299,12 +299,11 @@ export class FavoritesXtreamAdapter {
                 conflictsWith(candidate))
         )
             throw new Error(XTREAM_FAVORITE_IDENTITY_CONFLICT);
+        const source = current ?? candidate;
         const snapshot =
             current || candidate || identity
                 ? parseFavoriteSnapshot({
-                      ...(current || candidate
-                          ? xtreamFavoriteSnapshot(current ?? candidate!)
-                          : {}),
+                      ...(source ? xtreamFavoriteSnapshot(source) : {}),
                       ...(identity?.tmdbId
                           ? { tmdbId: String(identity.tmdbId) }
                           : {}),

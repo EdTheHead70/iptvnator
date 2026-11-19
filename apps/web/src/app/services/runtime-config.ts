@@ -14,7 +14,8 @@ export function resolveBackendUrl(
 }
 
 export function getRuntimeBackendUrl(): string {
-    if (sourceConnection() && !globalThis.window?.electron) return sourceConnection()!.apiUrl;
+    const connection = sourceConnection();
+    if (connection && !globalThis.window?.electron) return connection.apiUrl;
     return resolveBackendUrl(
         globalThis.window?.__IPTVNATOR_CONFIG__,
         AppConfig.BACKEND_URL

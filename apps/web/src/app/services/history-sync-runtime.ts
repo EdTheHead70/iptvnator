@@ -73,8 +73,8 @@ export class HistorySyncRuntime {
         ? inject(ElectronXtreamDataSource)
         : inject(PwaXtreamDataSource);
     private client?: HistorySyncClient;
-    private adapter?: HistoryPlaylistAdapter;
-    private xtream?: HistoryXtreamAdapter;
+    private adapter!: HistoryPlaylistAdapter;
+    private xtream!: HistoryXtreamAdapter;
     private refreshing?: Promise<void>;
     private changing?: Promise<void>;
     readonly enabled = signal(historyEnabled());
@@ -141,9 +141,12 @@ export class HistorySyncRuntime {
                 : localStorage.getItem(retirementKey) === epoch);
         this.client = new HistorySyncClient(
             this.capabilities.isElectron
-                ? new ElectronHistoryStore((request) =>
-                      window.electron!.historyLocalRequest!(request)
-                  )
+                ? new ElectronHistoryStore((request) => {
+                      const bridge = window.electron?.historyLocalRequest;
+                      if (!bridge)
+                          throw new Error('History local bridge unavailable');
+                      return bridge(request);
+                  })
                 : new IndexedDbHistoryStore(instanceId),
             {
                 instanceId,
@@ -153,7 +156,7 @@ export class HistorySyncRuntime {
                 consent: () =>
                     sourceConnection()?.instanceId === instanceId &&
                     historyEnabled()
-                        ? readHistoryConsent()!.generation
+                        ? (readHistoryConsent()?.generation ?? null)
                         : null,
                 request: requestSourceServer,
                 remember: (contexts) => {
@@ -188,13 +191,13 @@ export class HistorySyncRuntime {
         if (!playlist) return playlist;
         await prepareFavoriteHash();
         this.ensure();
-        return this.adapter!.project(playlist);
+        return this.adapter.project(playlist);
     }
     async mutate(playlist: Playlist, action: HistoryPlaylistAction) {
         const client = this.ensure();
         const scope = client.contexts.get(playlist._id);
         try {
-            const result = await this.adapter!.mutate(playlist, action);
+            const result = await this.adapter.mutate(playlist, action);
             await this.summary();
             client.current(scope);
             return result;
@@ -218,7 +221,7 @@ export class HistorySyncRuntime {
         );
         const scope = client.contexts.get(id);
         try {
-            const result = await this.xtream!.invoke(raw, method, args);
+            const result = await this.xtream.invoke(raw, method, args);
             await this.summary();
             client.current(scope);
             return result;
@@ -357,7 +360,7 @@ export class HistorySyncRuntime {
     exportHistory(playlist: Playlist, entry: PlaylistBackupEntry) {
         return projectHistoryBackup(
             this.ensure(),
-            this.adapter!,
+            this.adapter,
             playlist,
             entry
         );
@@ -366,7 +369,7 @@ export class HistorySyncRuntime {
         this.ensure();
         return createHistoryBackupRestorer(
             () => this.ensure(),
-            this.adapter!,
+            this.adapter,
             (id) => firstValueFrom(this.playlists.getPlaylistById(id))
         );
     }
@@ -377,7 +380,7 @@ export class HistorySyncRuntime {
                 this.capabilities.supportsXtreamSqliteDataSource
                     ? this.raw.getRecentItems(id, { all: true })
                     : this.raw.getRecentItems(id),
-            this.adapter!,
+            this.adapter,
             await this.rows(),
             (id) => firstValueFrom(this.playlists.getPlaylistById(id))
         );

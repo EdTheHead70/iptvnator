@@ -43,11 +43,16 @@ export function createActivityRuntimeClient(
     } catch {
         /* Recover contexts from the server. */
     }
-    const store = capabilities.isElectron
-        ? new ElectronActivityLocalStore(instanceId, (request) =>
-              window.electron!.activityLocalRequest!(request)
-          )
-        : new IndexedDbActivityLocalStore(instanceId);
+    let store: ElectronActivityLocalStore | IndexedDbActivityLocalStore;
+    if (capabilities.isElectron) {
+        const request = window.electron?.activityLocalRequest;
+        if (!request) throw new Error('Activity local bridge unavailable');
+        store = new ElectronActivityLocalStore(instanceId, (payload) =>
+            request(payload)
+        );
+    } else {
+        store = new IndexedDbActivityLocalStore(instanceId);
+    }
     const localOnly = new ActivityLocalOnlyPositions(
         instanceId,
         localStorage,

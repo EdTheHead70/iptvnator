@@ -87,10 +87,11 @@ export function activitySyncFixture() {
                 };
             if (input.operation === 'activity-read')
                 return { status: 200, body: remote };
-            const result = applyActivityOperation(
-                remote,
-                input.activity!.operation!
-            );
+            const operation = input.activity?.operation;
+            if (!operation) {
+                throw new Error('Synthetic activity operation missing');
+            }
+            const result = applyActivityOperation(remote, operation);
             if (result.status === 'applied') remote = result.state;
             return { status: 200, body: result };
         },

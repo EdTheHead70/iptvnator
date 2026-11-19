@@ -83,8 +83,10 @@ export class FavoritesPlaylistAdapter {
                     key,
                     mapped.get(key) ?? stalkerFavorite(ref, state.snapshot)
                 );
-            else if (ref.provider === 'm3u' && urls.has(key))
-                mapped.set(key, urls.get(key)!);
+            else if (ref.provider === 'm3u') {
+                const url = urls.get(key);
+                if (url) mapped.set(key, url);
+            }
         }
         const order = new Map(localOrder.map((key, index) => [key, index]));
         const favorites = [...mapped]

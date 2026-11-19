@@ -14,8 +14,10 @@ export function localActivityPosition(
     delete local.activityAction;
     if (local.watched) {
         const duration =
-            Number.isFinite(local.durationSeconds) && local.durationSeconds! > 0
-                ? local.durationSeconds!
+            typeof local.durationSeconds === 'number' &&
+            Number.isFinite(local.durationSeconds) &&
+            local.durationSeconds > 0
+                ? local.durationSeconds
                 : 1;
         local.positionSeconds = duration;
         local.durationSeconds = duration;

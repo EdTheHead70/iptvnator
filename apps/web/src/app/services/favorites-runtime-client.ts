@@ -40,11 +40,16 @@ export function createFavoritesRuntimeClient(
                   ['m3u', 'xtream', 'stalker'].includes(item.provider)
           )
         : [];
-    const local = capabilities.isElectron
-        ? new ElectronFavoriteLocalStore(instanceId, (request) =>
-              window.electron!.favoritesLocalRequest!(request)
-          )
-        : new IndexedDbFavoriteLocalStore(instanceId);
+    let local: ElectronFavoriteLocalStore | IndexedDbFavoriteLocalStore;
+    if (capabilities.isElectron) {
+        const request = window.electron?.favoritesLocalRequest;
+        if (!request) throw new Error('Favorites local bridge unavailable');
+        local = new ElectronFavoriteLocalStore(instanceId, (payload) =>
+            request(payload)
+        );
+    } else {
+        local = new IndexedDbFavoriteLocalStore(instanceId);
+    }
     const client = new FavoritesSyncClient(local, {
         instanceId,
         profileActive: () =>
@@ -53,10 +58,14 @@ export function createFavoritesRuntimeClient(
         deviceId: consent.deviceId,
         contexts,
         request: requestSourceServer,
-        consent: () =>
-            sourceConnection()?.instanceId === instanceId && favoritesEnabled()
-                ? readFavoritesConsent()!.generation
-                : null,
+        consent: () => {
+            if (
+                sourceConnection()?.instanceId !== instanceId ||
+                !favoritesEnabled()
+            )
+                return null;
+            return readFavoritesConsent()?.generation ?? null;
+        },
         remember: (value) => {
             const serialized = JSON.stringify(value);
             if (

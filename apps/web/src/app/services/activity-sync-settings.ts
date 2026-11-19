@@ -32,14 +32,17 @@ export async function handleParkedActivity(
                     adapter.protectLocal(sourceId, record.position);
                 await client.resolve(address, false, true);
             } else
-                await client.store.mutate(address, (current) => ({
-                    ...current!,
-                    pending: current!.pending.map((intent) => ({
-                        ...intent,
-                        consentGeneration: generation,
-                        deliveryLease: undefined,
-                    })),
-                }));
+                await client.store.mutate(address, (current) => {
+                    const base = current ?? record;
+                    return {
+                        ...base,
+                        pending: base.pending.map((intent) => ({
+                            ...intent,
+                            consentGeneration: generation,
+                            deliveryLease: undefined,
+                        })),
+                    };
+                });
         }
     }
     await client.flush();

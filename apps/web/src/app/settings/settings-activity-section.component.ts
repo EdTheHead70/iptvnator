@@ -68,11 +68,12 @@ export class SettingsActivitySectionComponent {
         }
     }
     async previewImport(): Promise<void> {
-        if (this.busy()) return;
+        const runtime = this.runtime();
+        if (this.busy() || !runtime) return;
         this.busy.set(true);
         this.failed.set(false);
         try {
-            this.preview.set(await this.runtime()!.previewImport());
+            this.preview.set(await runtime.previewImport());
         } catch {
             this.failed.set(true);
         } finally {
@@ -80,12 +81,13 @@ export class SettingsActivitySectionComponent {
         }
     }
     async importPositions(): Promise<void> {
-        if (this.busy()) return;
+        const runtime = this.runtime();
+        if (this.busy() || !runtime) return;
         this.busy.set(true);
         this.failed.set(false);
         try {
             this.unresolved.set(
-                await this.runtime()!.importPositions(this.preview() ?? [])
+                await runtime.importPositions(this.preview() ?? [])
             );
             this.preview.set(null);
         } catch {
@@ -96,20 +98,23 @@ export class SettingsActivitySectionComponent {
     }
 
     async refresh(): Promise<void> {
-        await this.runAction(() => this.runtime()!.refresh());
+        await this.runAction((runtime) => runtime.refresh());
     }
     async resolve(address: ActivityAddress, local: boolean): Promise<void> {
-        await this.runAction(() => this.runtime()!.resolve(address, local));
+        await this.runAction((runtime) => runtime.resolve(address, local));
     }
     async parked(send: boolean): Promise<void> {
-        await this.runAction(() => this.runtime()!.parked(send));
+        await this.runAction((runtime) => runtime.parked(send));
     }
-    private async runAction(action: () => Promise<unknown>): Promise<void> {
-        if (this.busy() || !this.runtime() || this.runtime()!.busy()) return;
+    private async runAction(
+        action: (runtime: ActivitySyncRuntime) => Promise<unknown>
+    ): Promise<void> {
+        const runtime = this.runtime();
+        if (this.busy() || !runtime || runtime.busy()) return;
         this.busy.set(true);
         this.failed.set(false);
         try {
-            await action();
+            await action(runtime);
         } catch {
             this.failed.set(true);
         } finally {

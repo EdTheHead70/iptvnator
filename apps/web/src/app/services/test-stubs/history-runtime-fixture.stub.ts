@@ -84,17 +84,19 @@ export async function historyRuntimeFixture(native = true, enabled = false) {
                     (input.id ?? input.history?.scope.sourceId)
             );
             if (!scope) throw new Error('Unknown synthetic source');
+            const current = remote.get(scope.sourceId);
+            if (!current) throw new Error('Synthetic history state missing');
             if (input.operation === 'history-read')
                 return {
                     status: 200,
-                    body: { scope, state: copy(remote.get(scope.sourceId)!) },
+                    body: { scope, state: copy(current) },
                 };
             if (
                 input.operation === 'history-apply' &&
                 input.history?.operation
             ) {
                 const applied = applyHistoryOperation(
-                    remote.get(scope.sourceId)!,
+                    current,
                     input.history.operation,
                     false,
                     Date.now()

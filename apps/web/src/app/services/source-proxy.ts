@@ -30,11 +30,12 @@ export async function ensureSourceProxy(url: string): Promise<void> {
         return;
     } catch {
         const connection = sourceConnection();
+        if (!connection) throw new Error('SOURCE_SYNC.OFFLINE');
         const epoch = sourceVerificationEpoch();
         if (!pending || pending.epoch !== epoch) {
             const promise = (async () => {
                 const response = await fetch(
-                    `${connection!.apiUrl}/v1/instance`,
+                    `${connection.apiUrl}/v1/instance`,
                     {
                         redirect: 'error',
                         cache: 'no-store',

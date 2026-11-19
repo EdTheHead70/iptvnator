@@ -85,7 +85,11 @@ export class SettingsServerSectionComponent {
     async connectHosted(url: string): Promise<void> {
         if (this.busy()) return;
         try {
-            const code = await window.electron.hostedServerAccessCode!();
+            const accessCode = window.electron.hostedServerAccessCode;
+            if (!accessCode) {
+                throw new Error('Hosted server access code unavailable');
+            }
+            const code = await accessCode();
             this.urlControl.setValue(url);
             this.token = code;
             await this.connect();

@@ -145,7 +145,10 @@ export class ActivitySyncRuntime {
                     client: () => this.ensureClient(),
                     mirror: async () => {
                         for (const sourceId of await this.sourceIds())
-                            await this.adapter!.keepLocal(this.raw, sourceId);
+                            await this.requireAdapter().keepLocal(
+                                this.raw,
+                                sourceId
+                            );
                     },
                     pause: (value, owner) => {
                         this.pauseOwner = value ? owner : undefined;
@@ -195,8 +198,10 @@ export class ActivitySyncRuntime {
 
     async begin(position: PlayerContentInfo, startTime = 0): Promise<void> {
         if (!this.enabled() || this.isDisabling()) return;
+        const playlistId = position.playlistId;
+        if (!playlistId) return;
         try {
-            await this.ensureClient().begin(position.playlistId!, {
+            await this.ensureClient().begin(playlistId, {
                 ...position,
                 positionSeconds: startTime,
             });
@@ -210,10 +215,12 @@ export class ActivitySyncRuntime {
         if (!activityEnabled()) return;
         try {
             this.ensureClient();
-            await this.adapter!.invoke(
+            const playlistId = position.playlistId;
+            if (!playlistId) return;
+            await this.requireAdapter().invoke(
                 this.raw,
                 'savePlaybackPosition',
-                [position.playlistId!, position],
+                [playlistId, position],
                 this.isDisabling()
             );
         } catch (error) {
@@ -237,7 +244,7 @@ export class ActivitySyncRuntime {
         }
         this.ensureClient();
         try {
-            return await this.adapter!.invoke(
+            return await this.requireAdapter().invoke(
                 raw,
                 method,
                 args,
@@ -271,7 +278,7 @@ export class ActivitySyncRuntime {
             if (!generation) return;
             await handleParkedActivity(
                 client,
-                this.adapter!,
+                this.requireAdapter(),
                 this.raw,
                 await this.sourceIds(),
                 send,
@@ -298,7 +305,7 @@ export class ActivitySyncRuntime {
         local: PlaybackPositionData[]
     ): Promise<PlaybackPositionData[]> {
         this.ensureClient();
-        return this.adapter!.exportPositions(sourceId, local);
+        return this.requireAdapter().exportPositions(sourceId, local);
     }
 
     async previewImport(): Promise<ActivityImportPreview> {
@@ -312,6 +319,14 @@ export class ActivitySyncRuntime {
         );
         await this.summary();
         return unresolved;
+    }
+
+    private requireAdapter(): ActivityPositionAdapter {
+        const adapter = this.adapter;
+        if (!adapter) {
+            throw new Error('Activity sync adapter is not initialized');
+        }
+        return adapter;
     }
 
     private ensureClient(): ActivitySyncClient {

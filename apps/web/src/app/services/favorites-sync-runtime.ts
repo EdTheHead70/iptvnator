@@ -70,8 +70,8 @@ export class FavoritesSyncRuntime {
         ? inject(ElectronXtreamDataSource)
         : inject(PwaXtreamDataSource);
     private client?: FavoritesSyncClient;
-    private playlistAdapter?: FavoritesPlaylistAdapter;
-    private xtreamAdapter?: FavoritesXtreamAdapter;
+    private playlistAdapter!: FavoritesPlaylistAdapter;
+    private xtreamAdapter!: FavoritesXtreamAdapter;
     private timer?: ReturnType<typeof setInterval>;
     private refreshing?: Promise<void>;
     private changing?: Promise<void>;
@@ -254,7 +254,7 @@ export class FavoritesSyncRuntime {
         if (!playlist) return playlist;
         await prepareFavoriteHash();
         this.ensureClient();
-        return this.playlistAdapter!.project(playlist);
+        return this.playlistAdapter.project(playlist);
     }
     async mutate(
         playlist: Playlist,
@@ -270,7 +270,7 @@ export class FavoritesSyncRuntime {
         if (!favoritesEnabled() && !client.contexts.has(playlist._id))
             return null;
         try {
-            const result = await this.playlistAdapter!.mutate(
+            const result = await this.playlistAdapter.mutate(
                 playlist,
                 transform,
                 persistLocal
@@ -291,7 +291,7 @@ export class FavoritesSyncRuntime {
         if (!favoritesEnabled() && !client.contexts.has(sourceId))
             return Reflect.apply(Reflect.get(raw, method), raw, args);
         try {
-            const result = await this.xtreamAdapter!.invoke(raw, method, args);
+            const result = await this.xtreamAdapter.invoke(raw, method, args);
             await this.summary();
             return result;
         } catch (error) {
@@ -306,7 +306,7 @@ export class FavoritesSyncRuntime {
         const client = this.ensureClient();
         return projectFavoriteBackup(
             client,
-            this.playlistAdapter!,
+            this.playlistAdapter,
             playlist,
             entry
         );
@@ -314,7 +314,7 @@ export class FavoritesSyncRuntime {
     backupRestorer() {
         return createFavoriteBackupRestorer(
             this.ensureClient(),
-            this.playlistAdapter!,
+            this.playlistAdapter,
             (id) => firstValueFrom(this.playlists.getPlaylistById(id))
         );
     }
@@ -325,7 +325,7 @@ export class FavoritesSyncRuntime {
         return previewLocalFavorites(
             client,
             this.raw,
-            this.playlistAdapter!,
+            this.playlistAdapter,
             await this.sourceRows(),
             (id) => firstValueFrom(this.playlists.getPlaylistById(id)),
             generation
